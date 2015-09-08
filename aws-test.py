@@ -11,6 +11,7 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 import unittest, time, re
+from time import sleep
 
 class AwsTest(unittest.TestCase):
     def setUp(self):
@@ -51,17 +52,19 @@ class AwsTest(unittest.TestCase):
         driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input").send_keys("server1")
         # インスタンス数
         driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_INSTANCES input").clear()
-        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_INSTANCES input").send_keys("2")
-        # 使用量
-        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_USAGE input").clear()
-        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_USAGE input").send_keys("90")
+        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_INSTANCES input").send_keys(["2",Keys.ENTER])
+	# 使用量
         Select(driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_USAGE select")).select_by_visible_text(u"使用率/月")
+        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_USAGE input").clear()
+        driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2)  table.SF_EC2_INSTANCE_FIELD_USAGE input").send_keys(['90',Keys.ENTER])
+
         # タイプ
 	btn=driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2) > td:nth-child(5) div.gwt-PushButton > img.gwt-Image")
 	ActionChains(driver).move_to_element(btn).click(btn).perform()
 	self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'table.Types > tbody > tr:nth-child(2)')) )
-        # EBS最適化
-        driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_EBS_OPTIMIZED input[type='checkbox']").click()
+        # EBS最適化=on
+        chkbox=driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_EBS_OPTIMIZED input[type='checkbox']")
+	if (chkbox.get_attribute('value') != 'on') : chkbox.click()
         # タイプ:OS
         lbls = driver.find_elements_by_css_selector("fieldset.SelectorDialogOS label")
 	osset = {}
@@ -73,19 +76,35 @@ class AwsTest(unittest.TestCase):
         types = {}
 	for i , itype in enumerate(itypes):
 		types[itype.text.strip()] = str(i+2)
-
 	driver.find_element_by_css_selector("table.Types > tbody > tr:nth-child(" + types['m4.4xlarge'] + ") > td label").click()
 		
         # タイプ:詳細オプションを開く
 	btn = driver.find_element_by_css_selector("table.InstanceTypeSelectorBody > tbody > tr:nth-child(3) > td > fieldset > table > tbody > tr > td:nth-child(1) > button")
 	if ( btn.text == u'表示'): btn.click()
-        # タイプ:詳細モニタリング
-        driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_MONITORING input").click()
-        # ハードウェア占有
-        driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_TENANCY input").click()
-        # 閉じて保存
+        # タイプ:詳細モニタリング=on
+	chkbox=driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_MONITORING input[type='checkbox']")
+	if (chkbox.get_attribute('value') != 'on') : chkbox.click()
+        # タイプ:ハードウェア占有=on
+	chkbox=driver.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']")
+	if (chkbox.get_attribute('value') != 'on') : chkbox.click()
+	
+        # タイプ:閉じて保存
 	driver.find_element_by_css_selector('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
-        # EBS
+        
+        # 料金計算オプション
+	btn=driver.find_element_by_css_selector("div.Instances table>tbody>tr:nth-last-child(2) > td:nth-child(6) div.gwt-PushButton > img.gwt-Image")
+	ActionChains(driver).move_to_element(btn).click(btn).perform()
+	self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'table.Types > tbody > tr.instance')) )
+	# 料金計算オプション:選択
+	ptypes = driver.find_elements_by_css_selector('table.Types > tbody > tr > td:nth-child(2) div.gwt-HTML')
+        paytypes = {}
+	for i , ptype in enumerate(ptypes):
+		paytypes[ptype.text.strip()] = str(i+2)
+        driver.find_element_by_css_selector("table.Types > tbody > tr:nth-child(" + paytypes[u'1 年間、一部前払い、リザーブド'] + ") > td label").click()
+	# 料金計算オプション:閉じて保存	
+	driver.find_element_by_css_selector("table.ContentContainer.InstanceSelectorContent > tbody > tr:nth-child(2) > td > table > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button").click()
+
+	# EBS
 	btn=driver.find_element_by_css_selector("div.Volumes tr.footer div.gwt-PushButton > img[src$='add.png']")
 	ActionChains(driver).move_to_element(btn).click(btn).perform()
         # EBS説明
@@ -93,34 +112,34 @@ class AwsTest(unittest.TestCase):
         driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2)>td:nth-child(2) input").send_keys("ebs-server1")
         # EBS:Volume数
         driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2)>td:nth-child(3) input").clear()
-        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2)>td:nth-child(3) input").send_keys("2")
+        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2)>td:nth-child(3) input").send_keys(["2",Keys.ENTER])
         # EBS:Volumeタイプ
         Select(driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_TYPE select")).select_by_visible_text(u"プロビジョンド IOPS（SSD）")
         # EBS:GB
         driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_STORAGE input").clear()
-        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_STORAGE input").send_keys("20")
+        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_STORAGE input").send_keys(["20",Keys.ENTER])
         # EBS:IOPS
         driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_AVERAGE_IOPS input").clear()
-        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_AVERAGE_IOPS input").send_keys("200")
+        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_AVERAGE_IOPS input").send_keys(["200",Keys.ENTER])
         # EBS:Snapshot
         driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_SNAPSHOT_STORAGE input").clear()
-        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_SNAPSHOT_STORAGE input").send_keys("200")
+        driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_SNAPSHOT_STORAGE input").send_keys(["200",Keys.ENTER])
         Select(driver.find_element_by_css_selector("div.Volumes table>tbody>tr:nth-last-child(2) table.SF_EC2_EBS_FIELD_SNAPSHOT_STORAGE select")).select_by_visible_text(u"月次スナップショットの変化率")
         # ElasticIP:数
         driver.find_element_by_css_selector("table.SF_ELASTIC_IP_NUMBER input").clear()
-        driver.find_element_by_css_selector("table.SF_ELASTIC_IP_NUMBER input").send_keys("1")
+        driver.find_element_by_css_selector("table.SF_ELASTIC_IP_NUMBER input").send_keys(["1",Keys.ENTER])
         # リージョン間データ転送送信
         driver.find_element_by_css_selector("table.dataTransferField:nth-child(1) input").clear()
-        driver.find_element_by_css_selector("table.dataTransferField:nth-child(1) input").send_keys("123")
+        driver.find_element_by_css_selector("table.dataTransferField:nth-child(1) input").send_keys(["123",Keys.ENTER])
         # データ転送送信
         driver.find_element_by_css_selector("table.dataTransferField:nth-child(2) input").clear()
-        driver.find_element_by_css_selector("table.dataTransferField:nth-child(2) input").send_keys("234")
+        driver.find_element_by_css_selector("table.dataTransferField:nth-child(2) input").send_keys(["234",Keys.ENTER])
         # ELB:数
         driver.find_element_by_css_selector("table.SF_ELB_DATA_NUMBER input").clear()
-        driver.find_element_by_css_selector("table.SF_ELB_DATA_NUMBER input").send_keys("2")
+        driver.find_element_by_css_selector("table.SF_ELB_DATA_NUMBER input").send_keys(["2",Keys.ENTER])
         # ELB:データ転送量
         driver.find_element_by_css_selector("table.subSection:nth-child(5) div.subContent > table:nth-child(2) input").clear()
-        driver.find_element_by_css_selector("table.subSection:nth-child(5) div.subContent > table:nth-child(2) input").send_keys("456")
+        driver.find_element_by_css_selector("table.subSection:nth-child(5) div.subContent > table:nth-child(2) input").send_keys(["456",Keys.ENTER])
         Select(driver.find_element_by_css_selector("table.subSection:nth-child(5) div.subContent > table:nth-child(2) select")).select_by_visible_text(u"GB/週")
         # お見積り
         driver.find_element_by_css_selector("div.billLabel").click()
