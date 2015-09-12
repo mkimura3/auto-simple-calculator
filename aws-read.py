@@ -48,17 +48,18 @@ class AwsTest(unittest.TestCase):
         self.disable_freetier()
 
         # 見積もりを取得する
-        bill=driver.find_element_by_css_selector("table.bill") 
-        pp ( self.get_estimate(bill) )
+        #bill=driver.find_element_by_css_selector("table.bill") 
+        #pp ( self.get_estimate(bill) )
 
         # Serviceメニューの取得
         self.init_serviceMenu() 
        
         # EC2構成情報の取得
         self.select_service('Amazon EC2') 
-        ec2tbl = driver.find_element_by_css_selector('table.service.EC2Service')
-        self.get_ec2Service(ec2tbl)
+        self.get_ec2Service()
 
+    def get_selectedText(self,select):
+        return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
 
     def init_serviceMenu(self):
         self.serviceTab = {}
@@ -86,23 +87,89 @@ class AwsTest(unittest.TestCase):
                 'description' : sc_desc
             }
 
-    def get_ec2Service(self,table):
-        # EC2タブの選択
+    def get_ec2Service(self):
+        driver = self.driver
+        # Region一覧の取得
+        listbox = driver.find_element_by_css_selector("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox")
+        regions = driver.find_elements_by_css_selector("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox option")
+        for region in regions :
+            Select(listbox).select_by_visible_text(region.text)
+            ec2tbl = driver.find_element_by_css_selector('table.service.EC2Service')
+            print region.text, "----------------------"
+            pp( self.get_ec2Service_region(ec2tbl) )
+             
+    def get_ec2Service_region(self,table):
+        # waitを短く
+        self.driver.implicitly_wait(1)
+        instances = []
         # インスタンス行取得
         rows = table.find_elements_by_css_selector('div.Instances table.itemsTable tr.EC2InstanceRow.itemsTableDataRow')
         for row in rows:
             # インスタンス説明
             desc = row.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input").get_attribute('value')
             # インスタンス数
-            instances = int(row.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_INSTANCES input").get_attribute('value'))
+            quantity = int(row.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_INSTANCES input").get_attribute('value'))
             # 使用料
             usage_val = int(row.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_USAGE input.numericTextBox").get_attribute('value'))
             s = row.find_element_by_css_selector("table.SF_EC2_INSTANCE_FIELD_USAGE select")
-            usage_type=s.find_elements_by_tag_name('option')[ int(s.get_attribute('selectedIndex')) ].text
-            # 選択されている設定を取得
-            pp(self.get_instanceType(row))
+            usage_type=self.get_selectedText(s)
             # 料金計算オプション
+            billing = row.find_element_by_css_selector("div.SF_COMMON_FIELD_BILLING.instanceBillingField").text
+            # インスタンスタイプ設定を取得
+            instance = self.get_instanceType(row)
+            #
+            instance.update( {
+                    'description' : desc,
+                    'quantity' : quantity,
+                    'usageType' : usage_type,
+                    'usageValue' : usage_val,
+                    'billingOption' : billing
+                })
+            instances.append(instance)
+        
+        # EBS行取得
+        storages = []
+        rows = table.find_elements_by_css_selector("div.Volumes tr.EBSVolumeRow.itemsTableDataRow")
+        for row in rows:
+            # Volume 説明
+            desc = row.find_element_by_css_selector("tr td:nth-child(2) input.gwt-TextBox.input").get_attribute('value')
+            # Volume 数
+            quantity = int(row.find_element_by_css_selector("tr td:nth-child(3) input.gwt-TextBox.input").get_attribute('value'))
+            # Volume サイズ
+            size = int(row.find_element_by_css_selector("tr td:nth-child(5) input.gwt-TextBox.input").get_attribute('value'))
+            # Volume IOPS
+            iops = int(row.find_element_by_css_selector("tr td:nth-child(6) input.gwt-TextBox.input").get_attribute('value'))
+            # Volume タイプ
+            s = row.find_element_by_css_selector("tr td:nth-child(4) select")
+            ebs_type = self.get_selectedText(s)
+            # Snapshot 
+            s = row.find_element_by_css_selector("tr td:nth-child(7) select")
+            snap_type = self.get_selectedText(s)
+            snap_size = float(row.find_element_by_css_selector("tr td:nth-child(7) input.gwt-TextBox.numericTextBox").get_attribute('value'))
+            storages.append({
+                'description' : desc,
+                'quantity' : quantity,
+                'size' : size,
+                'iops' : iops,
+                'type' : ebs_type,
+                'snapshotType' : snap_type,
+                'snapshotSize' : snap_size
+            })
 
+
+        # Elastic IP
+
+        # データ転送
+
+        # Elastic Load Balancing
+        
+        #wait秒数をもとに戻す
+        self.driver.implicitly_wait(15)
+
+        return {
+            "instances" : instances,
+            "storages"  : storages
+        }
 
     def get_instanceType(self,row):
         driver = self.driver
@@ -131,8 +198,8 @@ class AwsTest(unittest.TestCase):
         return {
                 'os': instance_os,
                 'type' : instance_type,
-                'ebs_optimized' : instance_ebsopt,
-                'detailed_monitor' : instance_monitor,
+                'ebsOptimized' : instance_ebsopt,
+                'detailedMonitor' : instance_monitor,
                 'dedicated' : instance_tenancy
             }
          
