@@ -78,31 +78,67 @@ class AwsTest(unittest.TestCase):
         self.get_element("table.Buttons > tbody > tr > td:nth-child(3) > button").click()
         # 無料利用枠チェック外す
         self.disable_freetier()
+        # Serviceメニューの取得
+        self.init_serviceMenu() 
 
         # 見積もりを取得する
         bill=self.get_element("table.bill") 
-        pp ( self.get_estimate(bill) )
+        estimate = self.get_estimate(bill)
+        pp(estimate)
+        
+        # Regionリストの取得
+        self.init_regionList()
+        
+        # 見積もり項目ごとに構成を取得する
+        for srvc in estimate['detail']:
+            m = re.match(u'^(.*)Service（(.*)）.*', srvc['name'])
+            if m  :
+                print m.group(0)
+                sconf = self.get_awsService( m.group(1).strip() , m.group(2).strip() ) 
+                pp(sconf)
 
-        # Serviceメニューの取得
-        self.init_serviceMenu() 
-       
+    def get_awsService(self, service_name, region_name):
+        
+        # 見積もりRegion名から、Regionプルダウンを特定
+        region_text = ''
+        for k in self.regionList:
+            if ( k.find(region_name) >=0 ) : 
+                region_text = k 
+                break
+        # TODO: regionエラー処理
+        
         # EC2構成情報の取得
-        self.select_service('Amazon EC2') 
-        self.get_ec2Service()
+        if ( service_name == 'Amazon EC2' ): 
+            # print service_name, region_text
+            self.select_service(u'Amazon EC2')
+            self.select_region(region_text)
+            return self.get_ec2Service()
 
     def init_serviceMenu(self):
         self.serviceTab = {}
         tabs = self.get_elements("div.servicesPanel > div.tabs > div.tab[aria-hidden=false]")
         for tab in tabs:
             self.serviceTab[ tab.text.strip() ] = tab
+    
+    def init_regionList(self):
+        self.select_service(u'Amazon EC2')
+        self.regionList = []
+        # Region一覧の取得
+        regions = self.get_elements("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox option")
+        for region in regions :
+            self.regionList.append(region.text.strip())
 
     def select_service(self, serviceName):
             self.serviceTab[serviceName].click()
+    
+    def select_region(self, region_text):
+        listbox = self.get_element("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox")
+        Select(listbox).select_by_visible_text(region_text)
 
     def get_solution(self,solution):
         sc_price_txt = self.get_text( "div.gwt-HTML.SC_Price", solution)
-        # 金額
-        sc_price = float(sc_price_txt.split(' ')[-1])
+        # 金額 (正しい金額ではないので保存しない)
+        # sc_price = float(sc_price_txt.split(' ')[-1])
         # 名前
         sc_name = self.get_text("table.SC_SOLUTION_LINE div.SC_SOLUTION_DATA", solution)
         # 含まれるもの
@@ -111,23 +147,14 @@ class AwsTest(unittest.TestCase):
         sc_desc = self.get_text("table.DescriptiveDetails div.SC_DESCRIPTION_DATA", solution)
 
         return {
-                'price' : sc_price,
                 'name' : sc_name,
                 'includes' : sc_include,
                 'description' : sc_desc
             }
 
+    
     def get_ec2Service(self):
-        # Region一覧の取得
-        listbox = self.get_element("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox")
-        regions = self.get_elements("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox option")
-        for region in regions :
-            Select(listbox).select_by_visible_text(region.text)
-            ec2tbl = self.get_element('table.service.EC2Service')
-            print region.text, "----------------------"
-            pp( self.get_ec2Service_region(ec2tbl) )
-             
-    def get_ec2Service_region(self,table):
+        table = self.get_element('table.service.EC2Service')
         # waitを短く
         self.driver.implicitly_wait(1)
         instances = []
@@ -297,7 +324,7 @@ class AwsTest(unittest.TestCase):
             return cname in target.get_attribute("class").split(" ")
 
         driver = self.driver
-        # ちょっと待ってから[+]をクリックする
+        # ちょっと待ってから[+]をクリックする TODO:料金表示のtab部分の変化をトリガーとする
         time.sleep(5)
         btns = self.get_elements("tr.columnTreeRow.summary[aria-hidden=false] img[src$='tree-up.png']", bill)
         for btn in btns: 
@@ -338,7 +365,7 @@ class AwsTest(unittest.TestCase):
 
         #各subTotalが項目合計と等しいか
         for field in estimate['detail']:
-            print field['name'], field['subTotal']  
+            #print field['name'], field['subTotal']  
             assert round(field['subTotal'],2) == round(sum([ a['price']  for a in field['items'] ]),2)
                 
 
