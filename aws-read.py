@@ -20,8 +20,8 @@ def pp(obj):
     else:
         print obj
  
-
 ESTIMATE_URL='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-FreeTier-NGC-140321'
+ESTIMATE_URL='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-7DBA9B32-1A4C-4829-AD7C-AE102ED1F10F'
 
 class AwsTest(unittest.TestCase):
 
@@ -49,9 +49,17 @@ class AwsTest(unittest.TestCase):
         if driver==None : driver=self.driver
         return driver.find_elements_by_css_selector(css)
 
-    def get_int_and_type(self, css, driver=None):
+    def get_val_and_type(self, css, driver=None):
         if driver==None : driver=self.driver
-        v = int(driver.find_element_by_css_selector(css + ' input').get_attribute('value'))
+        # input
+        i = driver.find_element_by_css_selector(css + ' input')
+        if self.is_member(i, 'integerNumericField') : 
+            v = int(i.get_attribute('value'))
+        elif self.is_member(i, 'NumericField') or self.is_member(i, 'numericTextBox'):
+            v = float(i.get_attribute('value'))
+        else:
+            v = i.get_attribute('value')
+        # select
         s = driver.find_element_by_css_selector(css + ' select')
         t = self.get_selectedText(s)
         return (v,t)
@@ -77,7 +85,7 @@ class AwsTest(unittest.TestCase):
         # 詳細ボタンを押す
         self.get_element("table.Buttons > tbody > tr > td:nth-child(3) > button").click()
         # 無料利用枠チェック外す
-        self.disable_freetier()
+        # self.disable_freetier()
         # Serviceメニューの取得
         self.init_serviceMenu() 
 
@@ -85,7 +93,6 @@ class AwsTest(unittest.TestCase):
         bill=self.get_element("table.bill") 
         estimate = self.get_estimate(bill)
         pp(estimate)
-        
         # Regionリストの取得
         self.init_regionList()
         
@@ -97,22 +104,7 @@ class AwsTest(unittest.TestCase):
                 sconf = self.get_awsService( m.group(1).strip() , m.group(2).strip() ) 
                 pp(sconf)
 
-    def get_awsService(self, service_name, region_name):
-        
-        # 見積もりRegion名から、Regionプルダウンを特定
-        region_text = ''
-        for k in self.regionList:
-            if ( k.find(region_name) >=0 ) : 
-                region_text = k 
-                break
-        # TODO: regionエラー処理
-        
-        # EC2構成情報の取得
-        if ( service_name == 'Amazon EC2' ): 
-            # print service_name, region_text
-            self.select_service(u'Amazon EC2')
-            self.select_region(region_text)
-            return self.get_ec2Service()
+
 
     def init_serviceMenu(self):
         self.serviceTab = {}
@@ -147,12 +139,187 @@ class AwsTest(unittest.TestCase):
         sc_desc = self.get_text("table.DescriptiveDetails div.SC_DESCRIPTION_DATA", solution)
 
         return {
-                'name' : sc_name,
-                'includes' : sc_include,
-                'description' : sc_desc
-            }
+            'name' : sc_name,
+            'includes' : sc_include,
+            'description' : sc_desc
+        }
 
-    
+    def get_awsService(self, service_name, region_name):
+        # 見積もりRegion名から、Regionプルダウンを特定
+        region_text = ''
+        for k in self.regionList:
+            if ( k.find(region_name) >=0 ) : 
+                region_text = k 
+                break
+        # TODO: regionエラー処理
+        
+        # EC2構成情報の取得
+        if ( service_name == 'Amazon EC2' ): 
+            # print service_name, region_text
+            self.select_service(u'Amazon EC2')
+            self.select_region(region_text)
+            return self.get_ec2Service()
+        # S3構成情報の取得
+        elif ( service_name == 'Amazon S3' ):
+            self.select_service(u'Amazon S3')
+            self.select_region(region_text)
+            return self.get_s3Service()
+        # RDS構成情報の取得
+        elif ( service_name == 'Amazon RDS' ):
+            self.select_service(u'Amazon RDS')
+            self.select_region(region_text)
+            return self.get_rdsService()
+
+   
+    # -------------------- RDS ----------------------
+    def get_rdsService(self):
+        table = self.get_element('table.service.RDSService')
+        # waitを短く
+        self.driver.implicitly_wait(1)  
+        ####
+        # インスタンス
+        instances = []
+        rows = self.get_elements('div.Instances table.itemsTable tr.RDSOnDemandRow.itemsTableDataRow', table)
+        for row in rows:
+            # インスタンス説明
+            desc = self.get_value("table.SF_RDS_INSTANCE_FIELD_DESCRIPTION input", row)
+            # インスタンス数
+            quantity = int(self.get_value("table.SF_RDS_INSTANCE_FIELD_INSTANCES input", row))
+            # 使用量
+            usage_val = int(self.get_value("table.SF_RDS_INSTANCE_FIELD_USAGE input.numericTextBox", row))
+            s = self.get_element("table.SF_RDS_INSTANCE_FIELD_USAGE select", row)
+            usage_type=self.get_selectedText(s)
+            # DB エンジンおよびライセンス
+            engine = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_ENGINE select', row))
+            # インスタンスタイプ
+            instance_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_CLASS select', row))
+            deploy_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_DEPLOYMENT_TYPE select', row))
+            # ストレージ
+            storage_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_IOPS_TYPE select' , row))
+            storage_size = int(self.get_value('table.SF_RDS_INSTANCE_FIELD_STORAGE input.numericTextBox', row ))
+            # IOPS
+            iops = int(self.get_value('table.SF_RDS_INSTANCE_FIELD_IOPS input.numericTextBox', row ))
+
+            instance= {
+                'description' : desc,
+                'quantity' : quantity,
+                'usageType' : usage_type,
+                'usageValue' : usage_val,
+                'engine' : engine,
+                'type' : instance_type,
+                'deployment' : deploy_type,
+                'storage' : {
+                    'type' : storage_type,
+                    'size' : storage_size,
+                    'iops' : iops
+                }
+            }
+            instances.append(instance)
+        # 追加のバックアップストレージ 
+        volumes = []
+        rows = self.get_elements('div.Volumes table.itemsTable tr.RDSBackupRow.itemsTableDataRow', table)
+        for row in rows:
+            backup_size , backup_type = self.get_val_and_type('table.SF_RDS_FIELD_BACKUP', row )
+            volumes.append({
+                'size' : backup_size,
+                'unit' :  backup_type
+            })
+
+        # リザーブドインスタンス
+        rinstances = []
+        rows = self.get_elements('div.RDBReserved table.itemsTable tr.RDSReservedRow.itemsTableDataRow', table)
+        for row in rows:
+            # インスタンス説明
+            desc = self.get_value("table.SF_RDS_INSTANCE_FIELD_DESCRIPTION input", row)
+            # インスタンス数
+            quantity = int(self.get_value("table.SF_RDS_INSTANCE_FIELD_INSTANCES input", row))
+            # 使用量
+            usage_val, usage_type  = self.get_val_and_type("table.SF_RDS_INSTANCE_FIELD_USAGE", row)
+            # DB エンジンおよびライセンス
+            engine = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_ENGINE select', row))
+            # インスタンスタイプ
+            instance_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_CLASS select', row ))
+            deploy_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_DEPLOYMENT_TYPE select', row))
+            # Offering and Term 
+            offering_type = self.get_selectedText( self.get_element('table.SF_RDS_RESERVED_FIELD_PAYMENT_OPTION select', row))
+            offering_term = self.get_selectedText( self.get_element('table.SF_RDS_RESERVED_FIELD_TERM select', row ))
+            # ストレージ
+            storage_type = self.get_selectedText( self.get_element('table.SF_RDS_INSTANCE_FIELD_IOPS_TYPE select', row ))
+            storage_size = int(self.get_value('table.SF_RDS_INSTANCE_FIELD_STORAGE input.numericTextBox', row ))
+            # IOPS
+            iops = int(self.get_value('table.SF_RDS_INSTANCE_FIELD_IOPS input.numericTextBox', row ))
+
+            rinstance= {
+                'description' : desc,
+                'quantity' : quantity,
+                'usageType' : usage_type,
+                'usageValue' : usage_val,
+                'engine' : engine,
+                'type' : instance_type,
+                'deployment' : deploy_type,
+                'storage' : {
+                    'type' : storage_type,
+                    'size' : storage_size,
+                    'iops' : iops
+                },
+                'offeringType' : offering_type,
+                'offeringTerm' : offering_term
+            }
+            rinstances.append(rinstance)
+
+        return {
+            'instances' : instances,
+            'backupVolumes' : volumes,
+            'reservedInstances' : rinstances
+        }
+
+    # --------------------- S3 ----------------------
+    def get_s3Service(self):
+        table = self.get_element('table.service.S3Service')
+        #ストレージ:
+        # 通常ストレージ
+        s3_size ,s3_size_unit = self.get_val_and_type("table.SF_S3_STORAGE", table)
+        # 低冗長ストレージ
+        rr_size ,rr_size_unit = self.get_val_and_type("table.SF_S3_RR_STORAGE", table)
+        # リクエスト
+        # PUT/COPY/POST/LIST リクエスト
+        req_put = int(self.get_value("table.SF_S3_PUT_COPY_POST_LIST_REQUESTS input", table))
+        # GET とその他のリクエスト 
+        req_get =int(self.get_value("table.SF_S3_GET_OTHER_REQUESTS input", table))
+        # データ転送:
+        # リージョン間データ転送送信:
+        inter_region , inter_region_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table)
+        # データ転送送信:
+        internet_out , internet_out_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(2)", table)
+        # データ転送受信:
+        internet_in , internet_in_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(3)", table)
+
+        return {
+            'standardStorage': {
+                'size' : s3_size,
+                'unit' : s3_size_unit
+            },
+            'reducedRedundancy': {
+                'size' : rr_size,
+                'unit' : rr_size_unit
+            },
+            'putCopyPostListRequests' : req_put,
+            'getOtherRequests' : req_get,
+            "interRegion" : {
+                "value" : inter_region,
+                "type"  : inter_region_type
+            },
+            "internetSend" : {
+                "value" : internet_out,
+                "type"  : internet_out_type
+            },
+            "internetRecive" : {
+                "value" : internet_in,
+                "type"  : internet_in_type
+            }
+        }
+
+    # --------------------- EC2 ----------------------
     def get_ec2Service(self):
         table = self.get_element('table.service.EC2Service')
         # waitを短く
@@ -217,28 +384,28 @@ class AwsTest(unittest.TestCase):
         # 追加 Elastic IP の数
         eip_quantity = int(self.get_value("table.SF_ELASTIC_IP_NUMBER input", table))
         # Elastic IP をアタッチしていない時間:
-        eip_notime, eip_notype = self.get_int_and_type("table.SF_ELASTIC_IP_ATTACHED",table)
+        eip_notime, eip_notype = self.get_val_and_type("table.SF_ELASTIC_IP_ATTACHED",table)
         # Elastic IP リマップの回数:
-        eip_remap, eip_retype = self.get_int_and_type("table.SF_ELASTIC_IP_REMAPS",table)
+        eip_remap, eip_retype = self.get_val_and_type("table.SF_ELASTIC_IP_REMAPS",table)
         # データ転送
         # リージョン間データ転送送信:
-        interr_data, interr_type = self.get_int_and_type("table.dataTransferField:nth-child(1)",table)
+        interr_data, interr_type = self.get_val_and_type("table.dataTransferField:nth-child(1)",table)
         # データ転送送信:
-        internet_out, internet_out_type = self.get_int_and_type("table.dataTransferField:nth-child(2)", table)
+        internet_out, internet_out_type = self.get_val_and_type("table.dataTransferField:nth-child(2)", table)
         # データ転送受信:
-        internet_in, internet_in_type = self.get_int_and_type("table.dataTransferField:nth-child(3)", table)
+        internet_in, internet_in_type = self.get_val_and_type("table.dataTransferField:nth-child(3)", table)
         # VPC ピア接続のデータ転送:
-        vpcpeer_data, vpcpeer_data_type = self.get_int_and_type("table.dataTransferField:nth-child(4)", table)
+        vpcpeer_data, vpcpeer_data_type = self.get_val_and_type("table.dataTransferField:nth-child(4)", table)
         # リージョン内データ転送:
-        intra_region, intra_region_type = self.get_int_and_type("table.dataTransferField:nth-child(5)", table)
+        intra_region, intra_region_type = self.get_val_and_type("table.dataTransferField:nth-child(5)", table)
         # パブリック IP/Elastic IP のデータ転送:
-        eip_data, eip_data_type =  self.get_int_and_type("table.dataTransferField:nth-child(6)", table)
+        eip_data, eip_data_type =  self.get_val_and_type("table.dataTransferField:nth-child(6)", table)
          
         # Elastic Load Balancing
         # Elastic LB の数:
         elb_quantity = int(self.get_value("table.SF_ELB_DATA_NUMBER input", table))
         # 全 ELB によって処理されたデータ総量:
-        elb_total , elb_total_type = self.get_int_and_type("table.subSection:nth-child(5) div.subContent > table:nth-child(2)", table) 
+        elb_total , elb_total_type = self.get_val_and_type("table.subSection:nth-child(5) div.subContent > table:nth-child(2)", table) 
 
         #wait秒数をもとに戻す
         self.driver.implicitly_wait(15)
@@ -319,27 +486,44 @@ class AwsTest(unittest.TestCase):
                 'dedicated' : instance_tenancy
             }
          
-    def get_estimate(self,bill):
-        def is_member(target , cname):
-            return cname in target.get_attribute("class").split(" ")
+    def is_member(self, target , cname):
+        return cname in target.get_attribute("class").split(" ")
 
-        driver = self.driver
+    def get_estimate(self,bill):
         # ちょっと待ってから[+]をクリックする TODO:料金表示のtab部分の変化をトリガーとする
-        time.sleep(5)
+        time.sleep(4)
         btns = self.get_elements("tr.columnTreeRow.summary[aria-hidden=false] img[src$='tree-up.png']", bill)
         for btn in btns: 
             btn.click()
+
         # 月額合計
+        total_items =[] 
         total = float(self.get_value('tr.total:not([aria-hidden]) table.value>tbody>tr>td:nth-child(2)>input',bill))
+        total_items.append({
+            'name' : self.get_text('tr.total:not([aria-hidden])>td:nth-child(1)>div.gwt-HTML.label'),
+            'price' : total
+        })
+        # サポートやリザーブ分を足す
+        totals = self.get_elements('tr.total[aria-hidden=false]',bill)
+        for t in totals:
+            #print self.get_text('tr>td>div.gwt-HTML.label',t), self.get_value('table.value>tbody>tr>td:nth-child(2)>input',t)
+            v = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input',t))
+            total_items.append({
+                'name' : self.get_text('tr>td>div.gwt-HTML.label',t),
+                'price' : v
+            })
+            total += v
+
         # 展開された見積もりを順に取得
         rows = self.get_elements("tr[aria-hidden=false]",bill)
         estimate={
             'total' : total,
+            'totalItems' : total_items,
             'detail' : []
         }
         s={}
         for row in rows:
-            if is_member(row,'summary') :
+            if self.is_member(row,'summary') :
                 if s : 
                     estimate['detail'].append(s)
                 s={}
@@ -348,7 +532,7 @@ class AwsTest(unittest.TestCase):
                 # subTotal
                 s['subTotal'] = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input', row))
                 s['items'] = []
-            elif is_member(row,'field'):
+            elif self.is_member(row,'field'):
                 i = {}
                 # sublabel
                 i['name'] = self.get_text('td:nth-child(1)>div.label', row)
@@ -365,14 +549,15 @@ class AwsTest(unittest.TestCase):
 
         #各subTotalが項目合計と等しいか
         for field in estimate['detail']:
-            #print field['name'], field['subTotal']  
+            print field['name'], field['subTotal']  
             assert round(field['subTotal'],2) == round(sum([ a['price']  for a in field['items'] ]),2)
                 
 
     def disable_freetier(self):
         # 無料利用枠チェック外す
         chkbox=self.get_element("#gwt-uid-2")
-        if (chkbox.get_attribute('value') == 'on') : chkbox.click()
+        if (chkbox.get_attribute('value') == 'on') : 
+            chkbox.click()
 
     def is_element_present(self, how, what):
         try: self.driver.find_element(by=how, value=what)
