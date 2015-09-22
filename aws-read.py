@@ -20,10 +20,14 @@ def pp(obj):
     else:
         print obj
  
-ESTIMATE_URL='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-FreeTier-NGC-140321'
-ESTIMATE_URL='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-9C7A8309-7AE5-4FF0-B888-82F15EDDBE68'
+ESTIMATE_URL  ='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-FreeTier-NGC-140321'
+ESTIMATE_URL = '/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-9C7A8309-7AE5-4FF0-B888-82F15EDDBE68'
+SS_PREFIX = 'aws-'
+SS_EXT = '.png'
 
 class AwsTest(unittest.TestCase):
+    def get_screenshot(self, name ):
+        self.driver.get_screenshot_as_file( SS_PREFIX + name + SS_EXT )
 
     def get_selectedText(self,select):
         return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
@@ -66,8 +70,9 @@ class AwsTest(unittest.TestCase):
 
     def setUp(self):
         self.driver = webdriver.Remote(
-        command_executor='http://192.168.56.1:4444/wd/hub',
-        desired_capabilities=DesiredCapabilities.CHROME)
+            command_executor='http://192.168.56.1:4444/wd/hub',
+            desired_capabilities=DesiredCapabilities.FIREFOX
+        )
 
         self.driver.implicitly_wait(15)
         self.base_url = "http://calculator.s3.amazonaws.com"
@@ -85,6 +90,8 @@ class AwsTest(unittest.TestCase):
         }
         #pp(solution)
         #print '-------------------------------------------'
+        # スクリーンショット取得
+        self.get_screenshot('solution')
 
         #
         # 詳細ボタンを押す
@@ -101,6 +108,8 @@ class AwsTest(unittest.TestCase):
         }
         #pp(estimate)
         #print '-------------------------------------------'
+        # スクリーンショット取得
+        self.get_screenshot('estimate')
 
         # Regionリストの取得
         self.init_regionList()
@@ -171,31 +180,35 @@ class AwsTest(unittest.TestCase):
                 region_text = k 
                 break
         # TODO: regionエラー処理
+
+        
+        # 該当サービスを表示
+        self.select_service(service_name)
+        # Region選択
+        self.select_region(region_text)
         
         # EC2構成情報の取得
         if ( service_name == 'Amazon EC2' ): 
             # print service_name, region_text
-            self.select_service(u'Amazon EC2')
-            self.select_region(region_text)
-            return { 'Amazon EC2' : self.get_ec2Service() }
+            ret = self.get_ec2Service()
         # S3構成情報の取得
         elif ( service_name == 'Amazon S3' ):
-            self.select_service(u'Amazon S3')
-            self.select_region(region_text)
-            return { 'Amazon S3': self.get_s3Service() }
+            ret = self.get_s3Service()
         # RDS構成情報の取得
         elif ( service_name == 'Amazon RDS' ):
-            self.select_service(u'Amazon RDS')
-            self.select_region(region_text)
-            return { 'Amazon RDS': self.get_rdsService() }
+            ret = self.get_rdsService()
         # VPC情報の取得
         elif ( service_name == 'Amazon VPC' ):
-            self.select_service(u'Amazon VPC') 
-            self.select_region(region_text)
-            return { 'Amazon RDS': self.get_vpcService() } 
+            ret = self.get_vpcService()
         # 未サポート
         else :
-            return { service_name : 'NotSupportedYet' }
+            ret = 'NotSupportedYet'
+            time.sleep(1) #画面表示までちょっと待つ
+        
+        # スクリーンショット取得
+        self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
+        
+        return { service_name : ret }
 
     # -------------------- VPC ----------------------
     def get_vpcService(self):
