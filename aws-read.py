@@ -18,7 +18,7 @@ def pp(obj):
         orig = json.dumps(obj, indent=4)
         print eval("u'''%s'''" % orig).encode('utf-8')
     else:
-        print obj
+        print obj.encode('utf-8')
  
 ESTIMATE_URL  ='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-FreeTier-NGC-140321'
 ESTIMATE_URL = '/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-9C7A8309-7AE5-4FF0-B888-82F15EDDBE68'
@@ -129,7 +129,7 @@ class AwsTest(unittest.TestCase):
         solution.update(estimate)
         solution.update({'SystemConfiguration' : systemconf })
        
-        print json.dumps(solution, indent=4, ensure_ascii=False ) 
+        print json.dumps(solution, indent=4, ensure_ascii=False ).encode('utf-8') 
         #pp(solution)
         
 
