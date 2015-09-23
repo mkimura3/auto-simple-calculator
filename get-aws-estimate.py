@@ -4,13 +4,15 @@
 """Get a detail estimate  From AWS SIMPLE MONTHLY CALCULATOR
 
 Usage:
-    get-aws-estimate.py (-u | --url) <SavedURL> (-s | --server) <SeleniumServerURL> [-d <driver_type> -f <file_prefix>]
+    get-aws-estimate.py (-u | --url) <SavedURL> (-s | --server) <SeleniumServerURL> [options]
 
 Options:
-    -h,--help         Show this screen.
-    --version         Show version.
-    -d <driver_type>  Selenium WebDriver Type [default: FIREFOX]
-    -f <file_prefix>  OutputFile prefix name [default: aws-]
+    -h,--help           Show this screen.
+    --version           Show version.
+    -d <driver_type>    Selenium WebDriver Type [default: FIREFOX]
+    -f <filename>       Output filename
+    -p <file_prefix>    ScreenshotFile prefix name [default: aws-]
+    --screen            Take Sceenshot
 """
 
 
@@ -19,8 +21,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
-#from selenium.common.exceptions import NoSuchElementException
-#from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.support.events import EventFiringWebDriver
 from selenium.webdriver.support.events import AbstractEventListener
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -28,7 +28,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
-import unittest, time, re, json
+import unittest, time, re, json, sys
 from time import sleep
 
 def pp(obj):
@@ -38,13 +38,6 @@ def pp(obj):
     else:
         print obj.encode('utf-8')
  
-#ESTIMATE_URL  ='/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-FreeTier-NGC-140321'
-#ESTIMATE_URL = '/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-9C7A8309-7AE5-4FF0-B888-82F15EDDBE68'
-#SS_PREFIX = 'aws-'
-#SS_EXT = '.png'
-
-
-
 class ScreenshotListener(AbstractEventListener):
     def on_exception(self, exception, driver):
         screenshot_name = "exception.png"
@@ -53,10 +46,11 @@ class ScreenshotListener(AbstractEventListener):
 
 
 class AwsEstimate():
-    def __init__(self, saved_url, server_url, driver_type, file_prefix ):
+    def __init__(self, saved_url, server_url, driver_type, file_prefix, screenshot ):
         self.saved_url = saved_url
     	self.command_executor = server_url
     	self.file_prefix = file_prefix
+        self.screenshot = screenshot
 	    
         if driver_type.strip() == 'FIREFOX' : 
             self.desired_capabilities=DesiredCapabilities.FIREFOX
@@ -66,7 +60,8 @@ class AwsEstimate():
             raise Exception('UnKnown Webdriver Type', driver_type )
 
     def get_screenshot(self, name ):
-        self.driver.get_screenshot_as_file( self.file_prefix + name + '.png' )
+        if self.screenshot : 
+            self.driver.get_screenshot_as_file( self.file_prefix + name + '.png' )
 
     def get_selectedText(self,select):
         return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
@@ -722,12 +717,13 @@ class AwsEstimate():
 if __name__ == "__main__":
 
     args = docopt(__doc__, version="0.1.0")
-    #pp(args)
+
     ae = AwsEstimate(
         saved_url=args['<SavedURL>'], 
         server_url=args['<SeleniumServerURL>'],
         driver_type=args['-d'],
-        file_prefix=args['-f'] )
+        file_prefix=args['-p'],
+        screenshot=args['--screen'] )
 
     ae.setUp()
     ae.test_aws_estimate()
