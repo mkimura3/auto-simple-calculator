@@ -27,6 +27,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 
 import unittest, time, re, json, sys
 from time import sleep
@@ -66,21 +67,33 @@ class AwsEstimate():
         return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
 
     def is_checked( self, css, driver=None ):
-        if driver==None : driver=self.eventdriver
-        chk = driver.find_element_by_css_selector(css).get_attribute('checked')
-        return chk == u'true' 
+        element = self.get_element(css, driver)
+        if element :
+            chk = element.get_attribute('checked')
+            return chk == u'true'
+        else :
+            return False
 
     def get_value( self, css, driver=None ):
-        if driver==None : driver=self.eventdriver
-        return driver.find_element_by_css_selector(css).get_attribute('value')
+        element = self.get_element(css, driver)
+        if element :
+            return element.get_attribute('value')
+        else :
+            return ''
 
     def get_text( self, css, driver=None ):
-        if driver==None : driver=self.eventdriver
-        return driver.find_element_by_css_selector(css).text
+        element = self.get_element(css, driver)
+        if element :
+            return element.text
+        else :
+            return ''
 
     def get_element( self,css, driver=None ):
         if driver==None : driver=self.eventdriver
-        return driver.find_element_by_css_selector(css)
+        try :
+            ret=driver.find_element_by_css_selector(css)
+        except NoSuchElementException, e: return None
+        return ret
 
     def get_elements(self, css, driver=None):
         if driver==None : driver=self.eventdriver
@@ -122,17 +135,20 @@ class AwsEstimate():
         driver.get(self.saved_url)
         # 概要の取得
         print >>sys.stderr, '# Getting Solution ...'
-        sol = self.get_element("table.SolutionShowBody")
-        solution = {
-            'Solution' : self.get_solution(sol)
-        }
-        # スクリーンショット取得
-        if self.screenshot : 
-            self.get_screenshot('solution')
-
-        #
-        # 詳細ボタンを押す
-        self.get_element("table.Buttons > tbody > tr > td:nth-child(3) > button").click()
+        # 名前、含まれるもの、概要は省略される可能性あり
+        sol = self.get_element("table.SolutionShowBody", self.driver)
+        if sol :  
+            solution = {
+                'Solution' : self.get_solution(sol)
+            }
+            # スクリーンショット取得
+            if self.screenshot : 
+                self.get_screenshot('solution')
+            # 詳細ボタンを押す
+            self.get_element("table.Buttons > tbody > tr > td:nth-child(3) > button").click()
+        else :
+           solution = {} 
+        
         # 無料利用枠チェック外す
         # self.disable_freetier()
         # Serviceメニューの取得
@@ -140,6 +156,7 @@ class AwsEstimate():
 
         # 見積もりを取得する
         print >>sys.stderr, '# Getting Estimate ...'
+        self.get_element("div.billLabel").click()
         bill=self.get_element("table.bill") 
         estimate = {
             'Estimate' : self.get_estimate(bill)
@@ -197,7 +214,7 @@ class AwsEstimate():
         sc_name = self.get_text("table.SC_SOLUTION_LINE div.SC_SOLUTION_DATA", solution)
         # 含まれるもの
         sc_include = self.get_text("table.DescriptiveDetails div.SC_INCLUDES_DATA", solution)
-        # 説明 TODO: 省略された場合にエラーになる問題に対応する
+        # 説明 
         sc_desc = self.get_text("table.DescriptiveDetails div.SC_DESCRIPTION_DATA", solution)
 
         return {
@@ -582,14 +599,30 @@ class AwsEstimate():
     
 
     def get_instanceType(self,row):
-        #driver = self.driver
-        #type_div = row.find_element_by_css_selector('div.SF_EC2_INSTANCE_FIELD_TYPE')
+        EBS_DESC = u'EBS'
+        MONITOR_DESC = u'詳細モニタリングあり'
+        TENANCY_DESC = u'専用|ハードウェア専有'
         type_div = self.get_element('div.SF_EC2_INSTANCE_FIELD_TYPE',row)
         tlines = type_div.text.splitlines()
         # OS
         instance_os = tlines[0].split(u'、')[0].strip()
         # インスタンスタイプ
         instance_type = tlines[0].split(u'、')[1].strip()
+
+        # デフォルト設定
+        instance_ebsopt = False
+        instance_monitor = False
+        instance_tenancy = False
+        
+        if len(tlines) > 1 : #2行目に記述がある場合
+            txt = tlines[1].strip()
+            # EBS最適化
+            if re.search(EBS_DESC , txt , re.U) : instance_ebsopt=True
+            # 詳細モニタリング
+            if re.search(MONITOR_DESC , txt, re.U) : instance_monitor=True
+            # ハードウェア占有
+            if re.search(TENANCY_DESC , txt, re.U) : instance_tenancy=True
+        """ 
         # インスタンスタイプを開く
         type_div.click()
         # タイプリストが展開されるまで待つ
@@ -602,6 +635,7 @@ class AwsEstimate():
         instance_tenancy = self.is_checked("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']")
         # ダイアログを閉じる
         self.get_element('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
+        """
         # 
         return {
                 'OS': instance_os,
