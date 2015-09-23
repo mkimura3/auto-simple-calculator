@@ -60,8 +60,7 @@ class AwsEstimate():
             raise Exception('UnKnown Webdriver Type', driver_type )
 
     def get_screenshot(self, name ):
-        if self.screenshot : 
-            self.driver.get_screenshot_as_file( self.file_prefix + name + '.png' )
+        self.driver.get_screenshot_as_file( self.file_prefix + name + '.png' )
 
     def get_selectedText(self,select):
         return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
@@ -103,10 +102,7 @@ class AwsEstimate():
         return (v,t)
 
     def setUp(self):
-        #self.driver = webdriver.Remote(
-        #    command_executor='http://192.168.56.1:4444/wd/hub',
-        #    desired_capabilities=DesiredCapabilities.FIREFOX
-        #)
+        print >>sys.stderr, '# Connecting Remote server ...'
         self.driver = webdriver.Remote(
             command_executor=self.command_executor,
             desired_capabilities=self.desired_capabilities
@@ -122,16 +118,17 @@ class AwsEstimate():
 
     def test_aws_estimate(self):
         driver = self.eventdriver
+        print >>sys.stderr, '# Accessing URL : ' + self.saved_url
         driver.get(self.saved_url)
         # 概要の取得
+        print >>sys.stderr, '# Getting Solution ...'
         sol = self.get_element("table.SolutionShowBody")
         solution = {
             'Solution' : self.get_solution(sol)
         }
-        #pp(solution)
-        #print '-------------------------------------------'
         # スクリーンショット取得
-        self.get_screenshot('solution')
+        if self.screenshot : 
+            self.get_screenshot('solution')
 
         #
         # 詳細ボタンを押す
@@ -142,36 +139,33 @@ class AwsEstimate():
         self.init_serviceMenu() 
 
         # 見積もりを取得する
+        print >>sys.stderr, '# Getting Estimate ...'
         bill=self.get_element("table.bill") 
         estimate = {
             'Estimate' : self.get_estimate(bill)
         }
-        #pp(estimate)
-        #print '-------------------------------------------'
         # スクリーンショット取得
-        self.get_screenshot('estimate')
+        if self.screenshot : 
+            self.get_screenshot('estimate')
 
         # Regionリストの取得
         self.init_regionList()
         
         # 見積もり項目ごとに構成を取得する
+        print >>sys.stderr, '# Getting SystemConfiguration ...'
         systemconf = {}
         for srvc in estimate['Estimate']['Detail']:
             m = re.match(u'^(.*)Service（(.*)）.*', srvc['Name'])
             if m  :
-                #print m.group(0)
+                print >>sys.stderr, '    + ' + m.group(0)
                 sc= self.get_awsService( m.group(1).strip() , m.group(2).strip() ) 
-                #pp(sc)
                 systemconf.update(sc)
-        #
-        #pp(systemconf)
         
         solution.update(estimate)
         solution.update({'SystemConfiguration' : systemconf })
-       
-        print json.dumps(solution, indent=4, ensure_ascii=False ).encode('utf-8') 
-        #pp(solution)
-        
+      
+        print >>sys.stderr, '# Done.' 
+        return solution 
 
 
     def init_serviceMenu(self):
@@ -246,7 +240,8 @@ class AwsEstimate():
             time.sleep(1) #画面表示までちょっと待つ
         
         # スクリーンショット取得
-        self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
+        if self.screenshot : 
+            self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
         
         return { service_name : ret }
 
@@ -718,6 +713,8 @@ if __name__ == "__main__":
 
     args = docopt(__doc__, version="0.1.0")
 
+    # print >>sys.stderr, args
+
     ae = AwsEstimate(
         saved_url=args['<SavedURL>'], 
         server_url=args['<SeleniumServerURL>'],
@@ -726,8 +723,16 @@ if __name__ == "__main__":
         screenshot=args['--screen'] )
 
     ae.setUp()
-    ae.test_aws_estimate()
+    solution=ae.test_aws_estimate()
     ae.tearDown()
- 
-    #unittest.main()
+
+    output=json.dumps(solution, indent=4, ensure_ascii=False ).encode('utf-8')
+    
+    if args['-f'] :
+        filename = args['-f']
+        fp=open(filename,'w')
+        print >> fp, output
+        fp.close()
+    else:
+        print output
 
