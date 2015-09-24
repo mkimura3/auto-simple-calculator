@@ -264,7 +264,10 @@ class AwsEstimate():
             ret = self.get_r53Service()
         # CloudFront情報の取得
         elif ( service_name == u'Amazon CloudFront' ):
-            ret = self.get_cfService()
+            ret = self.get_cloudfrontService()
+        # CloudWatch情報の取得
+        elif ( service_name == u'Amazon CloudWatch' ):
+            ret = self.get_cloudwatchService()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -276,8 +279,66 @@ class AwsEstimate():
         
         return { service_name : ret }
 
+    # -------------------- SES ----------------------
+    # -------------------- SNS ----------------------
+    # -------------------- CloudWatch ----------------------
+    def get_cloudwatchService(self):
+        table = self.get_element('table.service.CloudWatchService')
+        # waitを短く
+        self.driver.implicitly_wait(1)  
+        ####
+        # カスタムメトリクス
+        custmetrics = []
+        rows = self.get_elements('div.CustomMetrics table.itemsTable tr.CloudWatchMetricsRow.itemsTableDataRow', table)
+        for row in rows:
+            # 説明
+            desc = self.get_value("table.SF_CW_FIELD_DESCRIPTION input", row)
+            # リソース数
+            resources = int(self.get_value("table.SF_CW_FIELD_RESOURCES input", row))
+            # カスタムメトリクス数
+            metrics = int(self.get_value("table.SF_CW_FIELD_CUSTOM_METRICS input", row))
+            # メトリックデータの頻度
+            frequency = self.get_selectedText(self.get_element("table.SF_CW_FIELD_METRICS_FREQUENCY select",row))
+            # リソースあたりのアラーム
+            alarms = int(self.get_value("table.SF_CW_FIELD_ALARMS input", row))
+            # 取り込まれたログのサイズ
+            ingested_log = int(self.get_value("table.SF_CW_FIELD_ARCHIVED_LOGS input", row))
+            # アーカイブされたログのサイズ
+            archived_log = int(self.get_value("table.SF_CW_FIELD_INGESTED_LOGS input", row))
+            cust = {
+                'Description' : desc,
+                'Resources' : resources,
+                'CustomMetrics' : metrics,
+                'Frequency' : frequency,
+                'Alarms' : alarms,
+                'IngestedLogs' : ingested_log,
+                'ArchivedLogs' : archived_log
+            }
+            custmetrics.append(cust)
+
+        #  アラーム
+        ## EC2 インスタンス
+        ec2_alarms = int(self.get_value("table.SF_CW_EC2_ALARMS input", table))
+        ## Elastic Load Balancing
+        elb_alarms = int(self.get_value("table.SF_CW_ELB_ALARMS input", table))
+        ## EBS ボリューム
+        ebs_alarms = int(self.get_value("table.SF_CW_EBS_ALARMS input", table))
+        ## RDS DB インスタンス
+        rds_alarms = int(self.get_value("table.SF_CW_RDS_ALARMS input", table))
+        ## Auto Scaling 
+        as_alarms = int(self.get_value("table.SF_CW_AS_ALARMS input", table))
+        
+        return {
+            'CustomMetrics' : custmetrics,
+            'EC2Alarms' : ec2_alarms,
+            'ELBAlarms' : elb_alarms,
+            'EBSAlarms' : ebs_alarms,
+            'RDSAlarms' : rds_alarms,
+            'AutoScalingAlarms' : as_alarms
+        }
+        
     # -------------------- CloudFront ----------------------
-    def get_cfService(self):
+    def get_cloudfrontService(self):
         table = self.get_element('table.service.CloudFrontService')
         # データ転送送信:
         #   毎月のボリューム:
