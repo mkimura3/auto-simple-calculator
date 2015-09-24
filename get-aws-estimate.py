@@ -262,6 +262,9 @@ class AwsEstimate():
         # Route53情報の取得
         elif ( service_name == 'Amazon Route 53' ):
             ret = self.get_r53Service()
+        # CloudFront情報の取得
+        elif ( service_name == u'Amazon CloudFront' ):
+            ret = self.get_cfService()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -272,6 +275,63 @@ class AwsEstimate():
             self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
         
         return { service_name : ret }
+
+    # -------------------- CloudFront ----------------------
+    def get_cfService(self):
+        table = self.get_element('table.service.CloudFrontService')
+        # データ転送送信:
+        #   毎月のボリューム:
+        trans_size ,trans_unit = self.get_val_and_type("div.body > table.subSection:nth-child(1) div.subContent table.amountField", table)
+        # リクエスト:
+        #   平均オブジェクトサイズ:
+        avg_object_size = int(self.get_value("table.SF_CLOUD_FRONT_AVERAGE_OBJECT_SIZE input", table))
+        #   リクエストのタイプ:
+        # HTTPにチェック
+        if self.is_checked("table.SF_CLOUD_FRONT_TYPE_OF_REQUESTS td.Column0 input[type='radio']") :
+            request_type ='HTTP'
+        else:
+            request_type ='HTTPS'
+        #   無効化リクエスト:
+        request_invalid = int(self.get_value("table.SF_CLOUD_FRONT_INVALIDATION_REQUESTS input", table)) 
+        # エッジロケーションのトラフィックディストリビューション:
+        #   米国
+        percent_us = int(self.get_value("table.SF_CLOUD_FRONT_TIER_US input", table)) 
+        #   欧州
+        percent_eu = int(self.get_value("table.SF_CLOUD_FRONT_TIER_EU input", table)) 
+        #   香港、フィリピン、韓国、シンガポールおよび台湾
+        percent_hk = int(self.get_value("table.SF_CLOUD_FRONT_TIER_HK input", table)) 
+        #   日本
+        percent_jp = int(self.get_value("table.SF_CLOUD_FRONT_TIER_JP input", table)) 
+        #   南米
+        percent_sa = int(self.get_value("table.SF_CLOUD_FRONT_TIER_SA input", table)) 
+        #   オーストラリア
+        percent_au = int(self.get_value("table.SF_CLOUD_FRONT_TIER_AU input", table)) 
+        #   インド
+        percent_in = int(self.get_value("table.SF_CLOUD_FRONT_TIER_IN input", table)) 
+
+        # 専用 IP SSL 証明書:
+        #   証明書の数:
+        custom_ssl = int(self.get_value("table.SF_CLOUD_FRONT_CUSTOM_SSL_CERTS input", table)) 
+        
+        return {
+            'MonthlyVolume' : {
+                'Size' : trans_size,
+                'Unit' : trans_unit
+            },
+            'AverageObjectSize': avg_object_size,
+            'RequestType' : request_type,
+            'InvalidationRequests' : request_invalid,
+            'EdgeLocationDistribution' : {
+                'US': percent_us,
+                'EU': percent_eu,
+                'HK': percent_hk,
+                'JP': percent_jp,
+                'SA': percent_sa,
+                'AU': percent_au,
+                'IN': percent_in
+            },
+            'CustomCertificates' : custom_ssl
+        }
 
     # -------------------- Route53 ----------------------
     def get_r53Service(self):
