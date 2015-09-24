@@ -253,18 +253,18 @@ class AwsEstimate():
         # S3構成情報の取得
         elif ( service_name == 'Amazon S3' ):
             ret = self.get_s3Service()
-        # RDS構成情報の取得
-        elif ( service_name == 'Amazon RDS' ):
-            ret = self.get_rdsService()
-        # VPC情報の取得
-        elif ( service_name == 'Amazon VPC' ):
-            ret = self.get_vpcService()
         # Route53情報の取得
         elif ( service_name == 'Amazon Route 53' ):
             ret = self.get_r53Service()
         # CloudFront情報の取得
         elif ( service_name == u'Amazon CloudFront' ):
             ret = self.get_cloudfrontService()
+        # RDS構成情報の取得
+        elif ( service_name == 'Amazon RDS' ):
+            ret = self.get_rdsService()
+        # ElastiCache情報の取得
+        elif ( service_name == 'Amazon ElastiCache' ):
+            ret = self.get_elasticacheService()
         # CloudWatch情報の取得
         elif ( service_name == u'Amazon CloudWatch' ):
             ret = self.get_cloudwatchService()
@@ -274,6 +274,12 @@ class AwsEstimate():
         # SNS情報の取得
         elif ( service_name == u'Amazon SNS' ):
             ret = self.get_snsService()
+        # DirectConnect情報の取得
+        elif ( service_name == u'AWS Direct Connect' ):
+            ret = self.get_directconnectService()
+        # VPC情報の取得
+        elif ( service_name == 'Amazon VPC' ):
+            ret = self.get_vpcService()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -285,6 +291,114 @@ class AwsEstimate():
         
         return { service_name : ret }
 
+    # -------------------- ElastiCache ----------------------
+    def get_elasticacheService(self):
+        table = self.get_element('table.service.ElastiCacheService')
+        ####
+        # キャッシュクラスター: オンデマンドキャッシュノード:
+        ondemandnodes = []
+        rows = self.get_elements('div.Nodes table.itemsTable tr.ElastiCacheOnDemandNodeRow.itemsTableDataRow', table)
+        for row in rows:
+            # クラスター名
+            desc = self.get_value("table.SF_EC_FIELD_DESCRIPTION input", row)
+            # ノード
+            quantity = int(self.get_value("table.SF_EC_FIELD_NODES input", row))
+            # 使用量
+            usage_val , usage_type = self.get_val_and_type("table.SF_EC_FIELD_USAGE", row)
+            # ノードタイプ
+            node_type = self.get_selectedText(self.get_element("table.SF_EC_FIELD_NODE_TYPE select", row))
+            node = {
+                'Description' : desc,
+                'Quantity' : quantity,
+                'Usage' : {
+                    'Value' : usage_val,
+                    'Type' : node_type
+                },
+                'NodeType' : node_type
+            }
+            ondemandnodes.append(node)
+        #
+        #キャッシュクラスター: リザーブドキャッシュノード:
+        reservednodes = []
+        rows = self.get_elements('div.ReservedNodes table.itemsTable tr.ElastiCacheReservedNodeRow.itemsTableDataRow', table)
+        for row in rows:
+            # クラスター名
+            desc = self.get_value("table.SF_EC_FIELD_DESCRIPTION input", row)
+            # ノード
+            quantity = int(self.get_value("table.SF_EC_FIELD_NODES input", row))
+            # 使用量
+            usage_val , usage_type = self.get_val_and_type("table.SF_EC_FIELD_USAGE", row)
+            # ノードタイプ
+            node_type = self.get_selectedText(self.get_element("table.SF_EC_FIELD_NODE_TYPE select", row))
+            # 提供内容
+            offering_type = self.get_selectedText(self.get_element("table.SF_EC2_RESERVED_FIELD_UTILIZATION select", row))
+            # 提供期間
+            offering_term = self.get_selectedText(self.get_element("table.SF_EC2_RESERVED_FIELD_TERM select", row))
+            
+            node = {
+                'Description' : desc,
+                'Quantity' : quantity,
+                'Usage' : {
+                    'Value' : usage_val,
+                    'Type' : node_type
+                },
+                'NodeType' : node_type,
+                'OfferingType' : offering_type,
+                'OfferingTerm' : offering_term
+            }
+            reservednodes.append(node)
+        #
+        return {
+            'OnDemandNodes' : ondemandnodes,
+            'ReservedNodes' : reservednodes
+        }
+
+        
+    # -------------------- DirectConnect ----------------------
+    def get_directconnectService(self):
+        table = self.get_element('table.service.DirectConnectService')
+        ####
+        # AWS Direct Connect のポートとロケーション
+        directconnects = []
+        rows = self.get_elements('div.Instances table.itemsTable tr.DirectConnectInstanceRow.itemsTableDataRow', table)
+        for row in rows:
+            # ポートの説明
+            desc = self.get_value("table.SF_DIRECT_CONNECT_FIELD_DESCRIPTION input", row)
+            # ポート
+            ports, port_speed = self.get_val_and_type("table.SF_DIRECT_CONNECT_FIELD_PORTS", row)
+            # ポート使用量
+            usage_val, usage_type = self.get_val_and_type("table.SF_DIRECT_CONNECT_FIELD_USAGE", row)
+            # ロケーション
+            location = self.get_selectedText(self.get_element("table.SF_DIRECT_CONNECT_FIELD_LOCATION select", row))
+            # データ転送受信
+            recv_val , recv_type = self.get_val_and_type("tr > td.cell:nth-child(6) > table", row)
+            # データ転送送信
+            send_val , send_type = self.get_val_and_type("tr > td.cell:nth-child(7) > table", row)
+            directconnect = {
+                'Destciption' : desc,
+                'Quantity' : int(ports),
+                'PortSpeed' : port_speed,
+                'PortUsage' : {
+                    'Value' : usage_val,
+                    'Type'  : usage_type
+                },
+                'Location' : location,
+                'DataTransferOut': {
+                    'Value' : send_val,
+                    'Type' : send_type
+                },
+                'DataTransferIn': {
+                    'Value' : recv_val,
+                    'Type' : recv_type
+                }
+            }
+            directconnects.append(directconnect)
+        #
+        return {
+            'DirectConnects' : directconnects
+        }
+
+     
     # -------------------- SNS ----------------------
     def get_snsService(self):
         table = self.get_element('table.service.SNSService')
@@ -306,12 +420,12 @@ class AwsEstimate():
                 'Type' : notify_type
             },
             'DataTransferOut': {
-                'Size' : send_size,
-                'Unit' : send_unit
+                'Value' : send_size,
+                'Type' : send_unit
             },
             'DataTransferIn': {
-                'Size' : recv_size,
-                'Unit' : recv_unit
+                'Value' : recv_size,
+                'Type' : recv_unit
             }
         }   
  
@@ -333,16 +447,16 @@ class AwsEstimate():
         return {
             'emailMessages': emails ,
             'AttachmentsOut': {
-                'Size' : attach_size,
-                'Unit' : attach_unit
+                'Value' : attach_size,
+                'Type' : attach_unit
             },
             'DataTransferOut': {
-                'Size' : send_size,
-                'Unit' : send_unit
+                'Value' : send_size,
+                'Type' : send_unit
             },
             'DataTransferIn': {
-                'Size' : recv_size,
-                'Unit' : recv_unit
+                'Value' : recv_size,
+                'Type' : recv_unit
             }
         }
         
@@ -350,7 +464,7 @@ class AwsEstimate():
     def get_cloudwatchService(self):
         table = self.get_element('table.service.CloudWatchService')
         # waitを短く
-        self.driver.implicitly_wait(1)  
+        #self.driver.implicitly_wait(1)  
         ####
         # カスタムメトリクス
         custmetrics = []
@@ -441,8 +555,8 @@ class AwsEstimate():
         
         return {
             'MonthlyVolume' : {
-                'Size' : trans_size,
-                'Unit' : trans_unit
+                'Value' : trans_size,
+                'Type' : trans_unit
             },
             'AverageObjectSize': avg_object_size,
             'RequestType' : request_type,
@@ -493,16 +607,16 @@ class AwsEstimate():
         return {
             'HostedZones' : hosted_zone,
             'StandardQueries' : { 
-                'Size' : std_query,
-                'Unit' : std_unit
+                'Value' : std_query,
+                'Type' : std_unit
             },
             'LatencyQueries' : { 
-                'Size' : latency_query,
-                'Unit' : latency_unit
+                'Value' : latency_query,
+                'Type' : latency_unit
             },
             'GEOQueries' : { 
-                'Size' : geo_query,
-                'Unit' : geo_unit
+                'Value' : geo_query,
+                'Type' : geo_unit
             },
             'BasicChecksInternal' : basic_internal,
             'BasicChecksExternal' : basic_external,
@@ -542,22 +656,19 @@ class AwsEstimate():
                     'Value' : usage_val,
                     'Type' : usage_type,
                 },
-                'DataTranfer' : {
-                    'DataCenterSend' : {
+                'DataCenterSend' : {
                         'Value' : send_data,
                         'Type'  : send_type
-                    },
-                    'DataCenterReceive' : {
-                        'Value' : recv_data,
-                        'Type'  : recv_type
-                    }
+                },
+                'DataCenterReceive' : {
+                    'Value' : recv_data,
+                    'Type'  : recv_type
                 }
             }
             vpccons.append(vpccon)
         return {
             'VPCConnections' : vpccons
         }
-
 
     # -------------------- RDS ----------------------
     def get_rdsService(self):
@@ -611,8 +722,8 @@ class AwsEstimate():
         for row in rows:
             backup_size , backup_type = self.get_val_and_type('table.SF_RDS_FIELD_BACKUP', row )
             volumes.append({
-                'Size' : backup_size,
-                'Unit' :  backup_type
+                'Value' : backup_size,
+                'Type' : backup_type
             })
 
         # リザーブドインスタンス
@@ -688,12 +799,12 @@ class AwsEstimate():
 
         return {
             'StandardStorage': {
-                'Size' : s3_size,
-                'Unit' : s3_size_unit
+                'Value' : s3_size,
+                'Type' : s3_size_unit
             },
             'ReducedRedundancy': {
-                'Size' : rr_size,
-                'Unit' : rr_size_unit
+                'Value' : rr_size,
+                'Type' : rr_size_unit
             },
             'PutCopyPostListRequests' : req_put,
             'GetOtherRequests' : req_get,
