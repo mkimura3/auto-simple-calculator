@@ -288,7 +288,9 @@ class AwsEstimate():
         # スクリーンショット取得
         if self.screenshot : 
             self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
-        
+       
+        # Region名を追加 
+        if region_text : ret['Region'] = region_text
         return { service_name : ret }
 
     # -------------------- ElastiCache ----------------------
