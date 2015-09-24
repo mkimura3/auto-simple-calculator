@@ -268,6 +268,9 @@ class AwsEstimate():
         # CloudWatch情報の取得
         elif ( service_name == u'Amazon CloudWatch' ):
             ret = self.get_cloudwatchService()
+        # SES情報の取得
+        elif ( service_name == u'Amazon SES' ):
+            ret = self.get_sesService()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -279,8 +282,38 @@ class AwsEstimate():
         
         return { service_name : ret }
 
-    # -------------------- SES ----------------------
     # -------------------- SNS ----------------------
+    # -------------------- SES ----------------------
+    def get_sesService(self):
+        table = self.get_element('table.service.SESService')
+        # メッセージ:
+        ## Eメールメッセージ:
+        emails = int(self.get_value("table.SF_SES_EMAIL_MESSAGES input", table))
+        # 添付ファイル:
+        ## データ転送送信（添付ファイル）:
+        attach_size , attach_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table) 
+        # データ転送:
+        ## データ転送送信:
+        send_size , send_unit = self.get_val_and_type("table.subSection:nth-child(4) div.subContent > table:nth-child(1)", table) 
+        ## データ転送受信:
+        recv_size , recv_unit = self.get_val_and_type("table.subSection:nth-child(4) div.subContent > table:nth-child(2)", table) 
+        
+        return {
+            'emailMessages': emails ,
+            'AttachmentsOut': {
+                'Size' : attach_size,
+                'Unit' : attach_unit
+            },
+            'DataTransferOut': {
+                'Size' : send_size,
+                'Unit' : send_unit
+            },
+            'DataTransferIn': {
+                'Size' : recv_size,
+                'Unit' : recv_unit
+            }
+        }
+        
     # -------------------- CloudWatch ----------------------
     def get_cloudwatchService(self):
         table = self.get_element('table.service.CloudWatchService')
