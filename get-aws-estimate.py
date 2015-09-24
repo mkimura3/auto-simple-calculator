@@ -177,7 +177,13 @@ class AwsEstimate():
                 print >>sys.stderr, '    + ' + m.group(0)
                 sc= self.get_awsService( m.group(1).strip() , m.group(2).strip() ) 
                 systemconf.update(sc)
-        
+            else : # Region区別のないサービスの場合
+                n = re.match(u'^(.*) (サービス|Service)', srvc['Name'])
+                if n : 
+                    print >>sys.stderr, '    + ' + n.group(0)
+                    sc= self.get_awsService( n.group(1).strip() , None )
+                    systemconf.update(sc)
+        # 
         solution.update(estimate)
         solution.update({'SystemConfiguration' : systemconf })
       
@@ -203,8 +209,9 @@ class AwsEstimate():
             self.serviceTab[serviceName].click()
     
     def select_region(self, region_text):
-        listbox = self.get_element("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox")
-        Select(listbox).select_by_visible_text(region_text)
+        if region_text :
+            listbox = self.get_element("select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox")
+            Select(listbox).select_by_visible_text(region_text)
 
     def get_solution(self,solution):
         sc_price_txt = self.get_text( "div.gwt-HTML.SC_Price", solution)
@@ -226,11 +233,12 @@ class AwsEstimate():
     def get_awsService(self, service_name, region_name):
         # 見積もりRegion名から、Regionプルダウンを特定
         region_text = ''
-        for k in self.regionList:
-            if ( k.find(region_name) >=0 ) : 
-                region_text = k 
-                break
-        # TODO: regionエラー処理
+        if region_name :
+            for k in self.regionList:
+                if ( k.find(region_name) >=0 ) : 
+                    region_text = k 
+                    break
+            # TODO: regionエラー処理
 
         
         # 該当サービスを表示
@@ -251,6 +259,9 @@ class AwsEstimate():
         # VPC情報の取得
         elif ( service_name == 'Amazon VPC' ):
             ret = self.get_vpcService()
+        # Route53情報の取得
+        elif ( service_name == 'Amazon Route 53' ):
+            ret = self.get_r53Service()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -261,6 +272,61 @@ class AwsEstimate():
             self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
         
         return { service_name : ret }
+
+    # -------------------- Route53 ----------------------
+    def get_r53Service(self):
+        table = self.get_element('table.service.Route53Service')
+        # ホストゾーン
+        #   ホストゾーン:
+        hosted_zone = int(self.get_value("table.SF_ROUTE_53_HOSTED_ZONES input", table))
+        #   標準的クエリ:
+        std_query ,std_unit = self.get_val_and_type("table.SF_ROUTE_53_STANDARD_QUERIES", table)
+        #   レイテンシーベースルーティングクエリ:
+        latency_query ,latency_unit = self.get_val_and_type("table.SF_ROUTE_53_LATENCY_QUERIES", table)
+        #   Geo DNS クエリ:
+        geo_query ,geo_unit = self.get_val_and_type("table.SF_ROUTE_53_GEO_DNS_QUERIES", table)
+
+        # エンドポイントの DNS フェイルオーバーヘルスチェック
+        #   Basic Checks Within AWS:
+        basic_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_BASIC_CHECKS input", table))
+        #   Basic Checks Outside of AWS:
+        basic_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_BASIC_CHECKS input", table))
+        #   HTTPS Checks Within AWS:
+        http_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_HTTPS_CHECKS input", table))
+        #   HTTPS Checks Outside of AWS:
+        http_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_HTTPS_CHECKS  input", table))
+        #   String Matching Checks Within AWS:
+        string_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_STRINGMATCHING_CHECKS input", table))
+        #   String Matching Checks Outside of AWS:
+        string_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_STRINGMATCHING_CHECKS input", table))
+        #   Fast Interval Checks Within AWS:
+        fast_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_FASTINTERVAL_CHECKS input", table))
+        #   Fast Interval Checks Outside of AWS:
+        fast_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_FASTINTERVAL_CHECKS input", table))
+
+        return {
+            'HostedZones' : hosted_zone,
+            'StandardQueries' : { 
+                'Size' : std_query,
+                'Unit' : std_unit
+            },
+            'LatencyQueries' : { 
+                'Size' : latency_query,
+                'Unit' : latency_unit
+            },
+            'GEOQueries' : { 
+                'Size' : geo_query,
+                'Unit' : geo_unit
+            },
+            'BasicChecksInternal' : basic_internal,
+            'BasicChecksExternal' : basic_external,
+            'HTTPChecksInternal' : http_internal,
+            'HTTPChecksExternal' : http_external,
+            'StringChecksInternal' : string_internal,
+            'StringChecksExternal' : string_external,
+            'FastintervalChecksInternal' : fast_internal,
+            'FastintervalChecksExternal' : fast_external
+        }
 
     # -------------------- VPC ----------------------
     def get_vpcService(self):
