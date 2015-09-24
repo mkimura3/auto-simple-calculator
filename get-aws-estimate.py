@@ -271,6 +271,9 @@ class AwsEstimate():
         # SES情報の取得
         elif ( service_name == u'Amazon SES' ):
             ret = self.get_sesService()
+        # SNS情報の取得
+        elif ( service_name == u'Amazon SNS' ):
+            ret = self.get_snsService()
         # 未サポート
         else :
             ret = 'NotSupportedYet'
@@ -283,6 +286,35 @@ class AwsEstimate():
         return { service_name : ret }
 
     # -------------------- SNS ----------------------
+    def get_snsService(self):
+        table = self.get_element('table.service.SNSService')
+        # リクエストと通知:
+        ## リクエスト:
+        request = int(self.get_value("table.SF_SNS_REQUESTS input", table))
+        ## 通知:
+        notify_size, notify_type = self.get_val_and_type("table.SF_SNS_NOTIFICATIONS", table)
+        # データ転送:
+        ## データ転送送信
+        send_size , send_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table) 
+        ## データ転送受信
+        recv_size , recv_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(2)", table) 
+    
+        return {
+            'Requests' : request,
+            'Notifications' : {
+                'Messages' : notify_size, 
+                'Type' : notify_type
+            },
+            'DataTransferOut': {
+                'Size' : send_size,
+                'Unit' : send_unit
+            },
+            'DataTransferIn': {
+                'Size' : recv_size,
+                'Unit' : recv_unit
+            }
+        }   
+ 
     # -------------------- SES ----------------------
     def get_sesService(self):
         table = self.get_element('table.service.SESService')
