@@ -66,28 +66,28 @@ class AwsEstimate():
         return select.find_elements_by_tag_name('option')[ int(select.get_attribute('selectedIndex')) ].text
 
     def is_checked( self, css, driver=None ):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         chk = driver.find_element_by_css_selector(css).get_attribute('checked')
         return chk == u'true' 
 
     def get_value( self, css, driver=None ):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         return driver.find_element_by_css_selector(css).get_attribute('value')
 
     def get_text( self, css, driver=None ):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         return driver.find_element_by_css_selector(css).text
 
     def get_element( self,css, driver=None ):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         return driver.find_element_by_css_selector(css)
 
     def get_elements(self, css, driver=None):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         return driver.find_elements_by_css_selector(css)
 
     def get_val_and_type(self, css, driver=None):
-        if driver==None : driver=self.driver
+        if driver==None : driver=self.eventdriver
         # input
         i = driver.find_element_by_css_selector(css + ' input')
         if self.is_member(i, 'integerNumericField') : 
@@ -197,7 +197,7 @@ class AwsEstimate():
         sc_name = self.get_text("table.SC_SOLUTION_LINE div.SC_SOLUTION_DATA", solution)
         # 含まれるもの
         sc_include = self.get_text("table.DescriptiveDetails div.SC_INCLUDES_DATA", solution)
-        # 説明
+        # 説明 TODO: 省略された場合にエラーになる問題に対応する
         sc_desc = self.get_text("table.DescriptiveDetails div.SC_DESCRIPTION_DATA", solution)
 
         return {
