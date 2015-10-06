@@ -114,6 +114,39 @@ class AwsSystemConfig():
         t = self.get_selectedText(s)
         return (v,t)
 
+    def set_value( self, css, value, driver=None, value_type=None):
+        if value_type: 
+            v = value_type(value)
+        else:
+            v = value
+        element = self.get_element(css, driver)
+        element.clear()
+        element.send_keys([str(v), Keys.ENTER])
+    
+    def set_checkbox( self, css, value, driver=None):
+        chkbox = self.get_element(css, driver)
+        if value : 
+            # True
+            if (chkbox.get_attribute('value')!='on') : chkbox.click()
+        else :
+            # False
+            if (chkbox.get_attribute('value')=='on') : chkbox.click()
+
+    def set_val_and_type(self, css, values, driver=None, value_type=None):
+        if driver==None : driver=self.eventdriver
+        # input
+        if 'Value' in values :
+            if value_type: 
+                v = value_type(values['Value'])
+            else:
+                v = values['Value']
+            i = driver.find_element_by_css_selector(css + ' input')
+            i.send_keys([str(v), Keys.ENTER])
+        # select
+        if 'Type' in values :
+            s = driver.find_element_by_css_selector(css + ' select')
+            Select(s).select_by_visible_text(values['Type'])
+
     def setUp(self):
         print >>sys.stderr, '# Connecting Remote server ...'
         self.driver = webdriver.Remote(
@@ -243,7 +276,7 @@ class AwsSystemConfig():
         
         # EC2構成情報の設定
         if ( service_name == 'Amazon EC2' ): 
-            ret = self.set_ec2Service()
+            ret = self.set_ec2Service(service_conf)
         # S3構成情報の設定
         elif ( service_name == 'Amazon S3' ):
             ret = self.set_s3Service()
@@ -837,39 +870,39 @@ class AwsSystemConfig():
         """
 
     # --------------------- EC2 ----------------------
-    def set_ec2Service(self):
+    def add_ec2Instance(self, ec2conf):
+        # 追加ボタンを押す 
+        btn = self.get_element("div.Instances tr.footer div.gwt-PushButton > img[src$='add.png']")
+        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
+        # 追加された行
+        row = self.get_element('table.service.EC2Service div.Instances table>tbody>tr:nth-last-child(2)')
+        # インスタンス説明
+        if 'Description' in ec2conf:
+            self.set_value("table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input", ec2conf['Description'], row)
+        # インスタンス数
+        if 'Quantity' in ec2conf:
+            self.set_value("table.SF_EC2_INSTANCE_FIELD_INSTANCES input", ec2conf['Quantity'], row, int)
+        # 使用料
+        if 'Usage' in ec2conf:
+           self.set_val_and_type("table.SF_EC2_INSTANCE_FIELD_USAGE", ec2conf['Usage'], row, int) 
+        # Instanceタイプ ダイヤログの設定
+        self.set_instanceType(ec2conf,row)
+
+        # 料金計算オプション ダイヤログの設定
+
+         
+                
+        
+
+         
+    def set_ec2Service(self, conf):
         table = self.get_element('table.service.EC2Service')
-        """
-        # waitを短く
-        self.driver.implicitly_wait(1)
-        instances = []
-        ####
-        # インスタンス
-        rows = self.get_elements('div.Instances table.itemsTable tr.EC2InstanceRow.itemsTableDataRow', table)
-        for row in rows:
-            # インスタンス説明
-            desc = self.get_value("table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input", row)
-            # インスタンス数
-            quantity = int(self.get_value("table.SF_EC2_INSTANCE_FIELD_INSTANCES input", row))
-            # 使用料
-            usage_val = int(self.get_value("table.SF_EC2_INSTANCE_FIELD_USAGE input.numericTextBox", row))
-            s = self.get_element("table.SF_EC2_INSTANCE_FIELD_USAGE select", row)
-            usage_type=self.get_selectedText(s)
-            # 料金計算オプション
-            billing = self.get_text("div.SF_COMMON_FIELD_BILLING.instanceBillingField", row)
-            # インスタンスタイプ設定を取得
-            instance = self.get_instanceType(row)
-            #
-            instance.update( {
-                    'Description' : desc,
-                    'Quantity' : quantity,
-                    'Usage' : {
-                        'Value' : usage_val,
-                        'Type' : usage_type,
-                    },
-                    'BillingOption' : billing
-                })
-            instances.append(instance)
+        if 'Instances' in conf : 
+            for ec2conf in conf['Instances']:
+                # インスタンス追加
+                self.add_ec2Instance(ec2conf)
+
+        """    
         ####
         # EBS
         storages = []
@@ -899,130 +932,97 @@ class AwsSystemConfig():
                 'SnapshotType' : snap_type,
                 'SnapshotSize' : snap_size
             })
+        """
 
         # Elastic IP
-        # 追加 Elastic IP の数
-        eip_quantity = int(self.get_value("table.SF_ELASTIC_IP_NUMBER input", table))
-        # Elastic IP をアタッチしていない時間:
-        eip_notime, eip_notype = self.get_val_and_type("table.SF_ELASTIC_IP_ATTACHED",table)
-        # Elastic IP リマップの回数:
-        eip_remap, eip_retype = self.get_val_and_type("table.SF_ELASTIC_IP_REMAPS",table)
+        if 'ElasticIp' in conf :
+            v = conf['ElasticIp']
+            # 追加 Elastic IP の数
+            if 'Quantity' in v :
+                self.set_value("table.SF_ELASTIC_IP_NUMBER input", v['Quantity'], table, int)  
+            # Elastic IP をアタッチしていない時間:
+            if 'UnAttached' in v :
+                self.set_val_and_type("table.SF_ELASTIC_IP_ATTACHED", v['UnAttached'], table, int)
+            # Elastic IP リマップの回数:
+            if 'Remaps' in v :
+                self.set_val_and_type("table.SF_ELASTIC_IP_REMAPS", v['Remaps'], table, int)
         # データ転送
-        # リージョン間データ転送送信:
-        interr_data, interr_type = self.get_val_and_type("table.dataTransferField:nth-child(1)",table)
-        # データ転送送信:
-        internet_out, internet_out_type = self.get_val_and_type("table.dataTransferField:nth-child(2)", table)
-        # データ転送受信:
-        internet_in, internet_in_type = self.get_val_and_type("table.dataTransferField:nth-child(3)", table)
-        # VPC ピア接続のデータ転送:
-        vpcpeer_data, vpcpeer_data_type = self.get_val_and_type("table.dataTransferField:nth-child(4)", table)
-        # リージョン内データ転送:
-        intra_region, intra_region_type = self.get_val_and_type("table.dataTransferField:nth-child(5)", table)
-        # パブリック IP/Elastic IP のデータ転送:
-        eip_data, eip_data_type =  self.get_val_and_type("table.dataTransferField:nth-child(6)", table)
+        if 'DataTranfer' in conf :
+            v = conf['DataTranfer']
+            # リージョン間データ転送送信:
+            if 'InterRegion' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(1)", v['InterRegion'], table)
+            # データ転送送信:
+            if 'InternetSend' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(2)", v['InternetSend'], table)
+            # データ転送受信:
+            if 'InternetReceive' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(3)", v['InternetReceive'], table)
+            # VPC ピア接続のデータ転送:
+            if 'VpnPeers' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(4)", v['VpnPeers'], table)
+            # リージョン内データ転送:
+            if 'IntraRegion' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(5)", v['IntraRegion'], table)
+            # パブリック IP/Elastic IP のデータ転送:
+            if 'IntraRegionEIPELB' in v :
+                self.set_val_and_type("table.dataTransferField:nth-child(6)", v['IntraRegionEIPELB'], table) 
          
         # Elastic Load Balancing
-        # Elastic LB の数:
-        elb_quantity = int(self.get_value("table.SF_ELB_DATA_NUMBER input", table))
-        # 全 ELB によって処理されたデータ総量:
-        elb_total , elb_total_type = self.get_val_and_type("table.subSection:nth-child(5) div.subContent > table:nth-child(2)", table) 
-
-        #wait秒数をもとに戻す
-        self.driver.implicitly_wait(15)
-
-        return {
-            "Instances" : instances,
-            "Storages"  : storages,
-            "ElasticIp" : {
-                "Quantity" : eip_quantity,
-                "UnAttached" : {
-                    "Value" : eip_notime, 
-                    "Type" : eip_notype
-                }
-            },
-            "DataTranfer" : {
-                "InterRegion" : {
-                    "Value" : interr_data,
-                    "Type"  : interr_type
-                },
-                "IntraRegion" : {
-                    "Value" : intra_region,
-                    "Type"  : intra_region_type
-                },
-                "InternetSend" : {
-                    "Value" : internet_out,
-                    "Type"  : internet_out_type
-                },
-                "InternetReceive" : {
-                    "Value" : internet_in,
-                    "Type"  : internet_in_type
-                },
-                "VpnPeers" : {
-                    "Value" : vpcpeer_data,
-                    "Type"  : vpcpeer_data_type
-                },
-                "IntraRegionEIPELB" : {
-                    "Value" : eip_data,
-                    "Type"  : eip_data_type
-                }
-            },
-            "ElasticLoadBalancing" : {
-                "Quantity" : elb_quantity,
-                "ELBTransfer" : {
-                    "Value" : elb_total,
-                    "Type"  : elb_total_type
-                }
-            }
-        }
-        """
-    
-
-    def get_instanceType(self,row):
-        EBS_DESC = u'EBS'
-        MONITOR_DESC = u'詳細モニタリングあり'
-        TENANCY_DESC = u'専用|ハードウェア専有'
-        type_div = self.get_element('div.SF_EC2_INSTANCE_FIELD_TYPE',row)
-        tlines = type_div.text.splitlines()
-        # OS
-        instance_os = tlines[0].split(u'、')[0].strip()
-        # インスタンスタイプ
-        instance_type = tlines[0].split(u'、')[1].strip()
-
-        # デフォルト設定
-        instance_ebsopt = False
-        instance_monitor = False
-        instance_tenancy = False
+        if 'ElasticLoadBalancing' in conf : 
+            v = conf['ElasticLoadBalancing']
+            # Elastic LB の数:
+            if 'Quantity' in v :
+                self.set_value("table.SF_ELB_DATA_NUMBER input", v['Quantity'], table, int)
+            # 全 ELB によって処理されたデータ総量:
+            if 'ELBTransfer' in v :
+                self.set_val_and_type("table.subSection:nth-child(5) div.subContent > table:nth-child(2)", v['ELBTransfer'], table)
         
-        if len(tlines) > 1 : #2行目に記述がある場合
-            txt = tlines[1].strip()
-            # EBS最適化
-            if re.search(EBS_DESC , txt , re.U) : instance_ebsopt=True
-            # 詳細モニタリング
-            if re.search(MONITOR_DESC , txt, re.U) : instance_monitor=True
-            # ハードウェア占有
-            if re.search(TENANCY_DESC , txt, re.U) : instance_tenancy=True
-        """ 
-        # インスタンスタイプを開く
+        sys.wait(10)
+        #
+
+    def set_instanceType(self, ec2conf, row):
+        # インスタンスタイプウインドウを開く
+        type_div = self.get_element('div.SF_EC2_INSTANCE_FIELD_TYPE',row)
         type_div.click()
         # タイプリストが展開されるまで待つ
-        self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'table.Types > tbody > tr:nth-child(2)')) )
+        self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'div.InstanceTypeSelectorDialog table.Types > tbody > tr:nth-child(2)')) )
+        ## インスタンスタイプ
+        if 'InstanceType' in ec2conf:
+            # InstanceType一覧を取得 TODO: Region別にインスタンスタイプデータをキャッシュする
+            itypes = self.get_elements('div.InstanceTypeSelectorDialog table.Types td:nth-child(2) div.gwt-Label')
+            types = {}
+            for i , itype in enumerate(itypes):
+                types[itype.text.strip()] = str(i+2)
+            # InstanceType設定
+            cssstr = "div.InstanceTypeSelectorDialog table.Types > tbody > tr:nth-child(" + types[ec2conf['InstanceType']] + ") > td label"
+            self.get_element(cssstr).click()
+        ## OS
+        if 'OS' in ec2conf:
+            # OS一覧を取得
+            lbls = self.get_elements("div.InstanceTypeSelectorDialog fieldset.SelectorDialogOS label")
+            osset = {}
+            for os in lbls:
+                osset[os.text.strip()] = os
+            # OS設定
+            osset[ ec2conf['OS'] ].click()
         # EBS最適化
-        instance_ebsopt = self.is_checked("table.SF_EC2_INSTANCE_FIELD_EBS_OPTIMIZED input[type='checkbox']")
+        if 'EbsOptimized' in ec2conf:
+            self.set_checkbox("table.SF_EC2_INSTANCE_FIELD_EBS_OPTIMIZED input[type='checkbox']", ec2conf['EbsOptimized'] )
+        # 詳細オプションを展開する
+        btn = self.get_element("table.InstanceTypeSelectorBody > tbody > tr:nth-child(3) > td > fieldset > table > tbody > tr > td:nth-child(1) > button")
+        if ( btn.text == u'表示'): btn.click()
         # 詳細モニタリング
-        instance_monitor = self.is_checked("table.SF_EC2_INSTANCE_FIELD_MONITORING input[type='checkbox']")
+        if 'DetailedMonitor' in ec2conf:
+            self.set_checkbox("table.SF_EC2_INSTANCE_FIELD_MONITORING input[type='checkbox']", ec2conf['DetailedMonitor'] )
         # ハードウェア占有
-        instance_tenancy = self.is_checked("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']")
+        if 'Dedicated' in ec2conf:
+            self.set_checkbox("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']", ec2conf['Dedicated'] )
         # ダイアログを閉じる
         self.get_element('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
-        """
-        # 
-        return {
-                'OS': instance_os,
-                'InstanceType' : instance_type,
-                'EbsOptimized' : instance_ebsopt,
-                'DetailedMonitor' : instance_monitor,
-                'Dedicated' : instance_tenancy
-            }
+
+    def set_instanceBilling(self, ec2conf):
+        pass 
          
     def is_member(self, target , cname):
         return cname in target.get_attribute("class").split(" ")
