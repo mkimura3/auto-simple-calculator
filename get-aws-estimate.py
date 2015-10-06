@@ -925,6 +925,10 @@ class AwsEstimate():
                 "UnAttached" : {
                     "Value" : eip_notime, 
                     "Type" : eip_notype
+                },
+                "Remaps" : {
+                    "Value" : eip_remap, 
+                    "Type" : eip_retype
                 }
             },
             "DataTranfer" : {
