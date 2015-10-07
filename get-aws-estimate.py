@@ -380,7 +380,7 @@ class AwsEstimate():
                 'Destciption' : desc,
                 'Quantity' : int(ports),
                 'PortSpeed' : port_speed,
-                'PortUsage' : {
+                'Usage' : {
                     'Value' : usage_val,
                     'Type'  : usage_type
                 },
