@@ -771,11 +771,38 @@ class AwsEstimate():
                 'OfferingTerm' : offering_term
             }
             rinstances.append(rinstance)
-
+        ## データ転送
+        # リージョン間データ転送送信:
+        interr_data, interr_type = self.get_val_and_type("table.dataTransferField:nth-child(1)",table)
+        # データ転送送信:
+        internet_out, internet_out_type = self.get_val_and_type("table.dataTransferField:nth-child(2)", table)
+        # データ転送受信:
+        internet_in, internet_in_type = self.get_val_and_type("table.dataTransferField:nth-child(3)", table)
+        # リージョン内データ転送:
+        intra_region, intra_region_type = self.get_val_and_type("table.dataTransferField:nth-child(4)", table)
+        
         return {
             'Instances' : instances,
             'BackupVolumes' : volumes,
-            'ReservedInstances' : rinstances
+            'ReservedInstances' : rinstances,
+            "DataTranfer" : {
+                "InterRegion" : {
+                    "Value" : interr_data,
+                    "Type"  : interr_type
+                },
+                "IntraRegion" : {
+                    "Value" : intra_region,
+                    "Type"  : intra_region_type
+                },
+                "InternetSend" : {
+                    "Value" : internet_out,
+                    "Type"  : internet_out_type
+                },
+                "InternetReceive" : {
+                    "Value" : internet_in,
+                    "Type"  : internet_in_type
+                }
+            }
         }
 
     # --------------------- S3 ----------------------
@@ -993,20 +1020,6 @@ class AwsEstimate():
             if re.search(MONITOR_DESC , txt, re.U) : instance_monitor=True
             # ハードウェア占有
             if re.search(TENANCY_DESC , txt, re.U) : instance_tenancy=True
-        """ 
-        # インスタンスタイプを開く
-        type_div.click()
-        # タイプリストが展開されるまで待つ
-        self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'table.Types > tbody > tr:nth-child(2)')) )
-        # EBS最適化
-        instance_ebsopt = self.is_checked("table.SF_EC2_INSTANCE_FIELD_EBS_OPTIMIZED input[type='checkbox']")
-        # 詳細モニタリング
-        instance_monitor = self.is_checked("table.SF_EC2_INSTANCE_FIELD_MONITORING input[type='checkbox']")
-        # ハードウェア占有
-        instance_tenancy = self.is_checked("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']")
-        # ダイアログを閉じる
-        self.get_element('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
-        """
         # 
         return {
                 'OS': instance_os,
