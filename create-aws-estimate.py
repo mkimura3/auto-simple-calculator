@@ -46,6 +46,9 @@ class ScreenshotListener(AbstractEventListener):
 
 
 class AwsSystemConfig():
+    RETRY = 3 
+    ec2InstanceTypes = {} 
+    
     def __init__(self, system_conf, server_url, driver_type, file_prefix, screenshot ):
         self.system_conf = system_conf
     	self.command_executor = server_url
@@ -114,6 +117,11 @@ class AwsSystemConfig():
         t = self.get_selectedText(s)
         return (v,t)
 
+    def set_textbox( self, css, value, driver=None):
+        element = self.get_element(css, driver)
+        element.clear()
+        element.send_keys(value)
+
     def set_value( self, css, value, driver=None, value_type=None):
         if value_type: 
             v = value_type(value)
@@ -125,12 +133,17 @@ class AwsSystemConfig():
     
     def set_checkbox( self, css, value, driver=None):
         chkbox = self.get_element(css, driver)
+        chk = chkbox.get_attribute('checked')
         if value : 
             # True
-            if (chkbox.get_attribute('value')!='on') : chkbox.click()
+            if (chk!=u'true') : chkbox.click()
         else :
             # False
-            if (chkbox.get_attribute('value')=='on') : chkbox.click()
+            if (chk==u'true') : chkbox.click()
+
+    def set_select( self, css, value, driver=None):
+        s = self.get_element(css, driver)
+        Select(s).select_by_visible_text(value)
 
     def set_val_and_type(self, css, values, driver=None, value_type=None):
         if driver==None : driver=self.eventdriver
@@ -164,59 +177,25 @@ class AwsSystemConfig():
 
     def create_aws_estimate(self):
         driver = self.eventdriver
-        #print >>sys.stderr, '# Accessing URL : ' + self.saved_url
+        print >>sys.stderr, '# Accessing URL : ' + self.start_url
         driver.get(self.start_url)
-        """ 
-        # 概要の取得
-        print >>sys.stderr, '# Getting Solution ...'
-        # 名前、含まれるもの、概要は省略される可能性あり
-        sol = self.get_element("table.SolutionShowBody", self.driver)
-        if sol :  
-            solution = {
-                'Solution' : self.get_solution(sol)
-            }
-            # スクリーンショット取得
-            if self.screenshot : 
-                self.get_screenshot('solution')
-            # 詳細ボタンを押す
-            self.get_element("table.Buttons > tbody > tr > td:nth-child(3) > button").click()
-        else :
-           solution = {} 
-        """
         time.sleep(1) #画面表示までちょっと待つ
         # 無料利用枠チェック外す
         self.disable_freetier()
         # Serviceメニューの取得
         #self.init_serviceMenu() 
-
-        """
-        # 見積もりを取得する
-        print >>sys.stderr, '# Getting Estimate ...'
-        self.get_element("div.billLabel").click()
-        bill=self.get_element("table.bill") 
-        estimate = {
-            'Estimate' : self.get_estimate(bill)
-        }
-        # スクリーンショット取得
-        if self.screenshot : 
-            self.get_screenshot('estimate')
-        """
         # Regionリストの取得
         self.init_regionList()
-        
         # サービス項目ごとに構成を設定する
         print >>sys.stderr, '# Setting SystemConfiguration ...'
         system_conf = self.system_conf
         for k ,v in system_conf['SystemConfiguration'].items():
             print >>sys.stderr, '    + ' + k
             self.set_awsService( k, v )
-        # 
-     
         # 保存して共有 
-        
         print >>sys.stderr, '# Done.' 
-        saved_url = ''
-        return saved_url 
+        saved_url = self.get_estimate_url( system_conf['Solution'] )
+        return saved_url
 
     def init_serviceMenu(self):
         self.serviceTab = {}
@@ -870,70 +849,17 @@ class AwsSystemConfig():
         """
 
     # --------------------- EC2 ----------------------
-    def add_ec2Instance(self, ec2conf):
-        # 追加ボタンを押す 
-        btn = self.get_element("div.Instances tr.footer div.gwt-PushButton > img[src$='add.png']")
-        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
-        # 追加された行
-        row = self.get_element('table.service.EC2Service div.Instances table>tbody>tr:nth-last-child(2)')
-        # インスタンス説明
-        if 'Description' in ec2conf:
-            self.set_value("table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input", ec2conf['Description'], row)
-        # インスタンス数
-        if 'Quantity' in ec2conf:
-            self.set_value("table.SF_EC2_INSTANCE_FIELD_INSTANCES input", ec2conf['Quantity'], row, int)
-        # 使用料
-        if 'Usage' in ec2conf:
-           self.set_val_and_type("table.SF_EC2_INSTANCE_FIELD_USAGE", ec2conf['Usage'], row, int) 
-        # Instanceタイプ ダイヤログの設定
-        self.set_instanceType(ec2conf,row)
-
-        # 料金計算オプション ダイヤログの設定
-
-         
-                
-        
-
-         
     def set_ec2Service(self, conf):
         table = self.get_element('table.service.EC2Service')
+        region = conf['Region']
+        # Instance
         if 'Instances' in conf : 
             for ec2conf in conf['Instances']:
-                # インスタンス追加
-                self.add_ec2Instance(ec2conf)
-
-        """    
-        ####
+                self.add_ec2Instance(ec2conf,region)
         # EBS
-        storages = []
-        rows = self.get_elements("div.Volumes tr.EBSVolumeRow.itemsTableDataRow", table)
-        for row in rows:
-            # Volume 説明
-            desc = self.get_value("tr td:nth-child(2) input.gwt-TextBox.input", row)
-            # Volume 数
-            quantity = int(self.get_value("tr td:nth-child(3) input.gwt-TextBox.input", row))
-            # Volume サイズ
-            size = int(self.get_value("tr td:nth-child(5) input.gwt-TextBox.input", row))
-            # Volume IOPS
-            iops = int(self.get_value("tr td:nth-child(6) input.gwt-TextBox.input", row))
-            # Volume タイプ
-            s = self.get_element("tr td:nth-child(4) select", row)
-            ebs_type = self.get_selectedText(s)
-            # Snapshot 
-            s = self.get_element("tr td:nth-child(7) select", row)
-            snap_type = self.get_selectedText(s)
-            snap_size = float( self.get_value("tr td:nth-child(7) input.gwt-TextBox.numericTextBox",row) )
-            storages.append({
-                'Description' : desc,
-                'Quantity' : quantity,
-                'Size' : size,
-                'Iops' : iops,
-                'EBSType' : ebs_type,
-                'SnapshotType' : snap_type,
-                'SnapshotSize' : snap_size
-            })
-        """
-
+        if 'Storages' in conf :
+            for ebsconf in conf['Storages']:
+                self.add_ebsVolume(ebsconf)
         # Elastic IP
         if 'ElasticIp' in conf :
             v = conf['ElasticIp']
@@ -967,7 +893,6 @@ class AwsSystemConfig():
             # パブリック IP/Elastic IP のデータ転送:
             if 'IntraRegionEIPELB' in v :
                 self.set_val_and_type("table.dataTransferField:nth-child(6)", v['IntraRegionEIPELB'], table) 
-         
         # Elastic Load Balancing
         if 'ElasticLoadBalancing' in conf : 
             v = conf['ElasticLoadBalancing']
@@ -978,26 +903,32 @@ class AwsSystemConfig():
             if 'ELBTransfer' in v :
                 self.set_val_and_type("table.subSection:nth-child(5) div.subContent > table:nth-child(2)", v['ELBTransfer'], table)
         
-        sys.wait(10)
-        #
-
-    def set_instanceType(self, ec2conf, row):
-        # インスタンスタイプウインドウを開く
-        type_div = self.get_element('div.SF_EC2_INSTANCE_FIELD_TYPE',row)
-        type_div.click()
-        # タイプリストが展開されるまで待つ
-        self.wait.until( expected_conditions.presence_of_element_located((By.CSS_SELECTOR , 'div.InstanceTypeSelectorDialog table.Types > tbody > tr:nth-child(2)')) )
-        ## インスタンスタイプ
+    def set_instanceType(self, ec2conf, row, region):
+        self.driver.implicitly_wait(1)
+        for i in range(self.RETRY): #RETRY
+            # インスタンスタイプウインドウを開く
+            type_div = self.get_element('div.SF_EC2_INSTANCE_FIELD_TYPE',row)
+            type_div.click()
+            # InstanceType一覧を取得 
+            itypes = self.get_elements('div.InstanceTypeSelectorDialog table.Types > tbody > tr > td:nth-child(2) div.gwt-Label')
+            if len(itypes) > 2 : 
+                if region in self.ec2InstanceTypes : # キャッシュ利用
+                    pass
+                else: # Region別にインスタンスタイプデータをキャッシュする
+                    types = {}
+                    for i , itype in enumerate(itypes):
+                        types[itype.text.strip()] = str(i+2)
+                    self.ec2InstanceTypes[region] = types
+                    break
+            else: # ダイアログを開きなおす
+                self.get_element('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
+                
+        # インスタンスタイプ
         if 'InstanceType' in ec2conf:
-            # InstanceType一覧を取得 TODO: Region別にインスタンスタイプデータをキャッシュする
-            itypes = self.get_elements('div.InstanceTypeSelectorDialog table.Types td:nth-child(2) div.gwt-Label')
-            types = {}
-            for i , itype in enumerate(itypes):
-                types[itype.text.strip()] = str(i+2)
             # InstanceType設定
-            cssstr = "div.InstanceTypeSelectorDialog table.Types > tbody > tr:nth-child(" + types[ec2conf['InstanceType']] + ") > td label"
+            cssstr = "div.InstanceTypeSelectorDialog table.Types > tbody > tr:nth-child(" + self.ec2InstanceTypes[region][ec2conf['InstanceType']] + ") > td label"
             self.get_element(cssstr).click()
-        ## OS
+        # OS
         if 'OS' in ec2conf:
             # OS一覧を取得
             lbls = self.get_elements("div.InstanceTypeSelectorDialog fieldset.SelectorDialogOS label")
@@ -1019,77 +950,93 @@ class AwsSystemConfig():
         if 'Dedicated' in ec2conf:
             self.set_checkbox("table.SF_EC2_INSTANCE_FIELD_TENANCY input[type='checkbox']", ec2conf['Dedicated'] )
         # ダイアログを閉じる
+        time.sleep(0.1)
         self.get_element('table.Buttons > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button').click()
+        self.driver.implicitly_wait(15)
+ 
+    def set_instanceBilling(self, billing , row):
+        # 料金計算オプションウィンドウを開く
+        type_div = self.get_element('div.SF_COMMON_FIELD_BILLING',row).click()
+        # 料金計算オプション 一覧を取得する
+        ptypes = self.get_elements('div.InstanceBillingSelectorDialog table.Types > tbody > tr > td:nth-child(2) div.gwt-HTML')
+        paytypes = {}
+        for i , ptype in enumerate(ptypes):
+            paytypes[ptype.text.strip()] = str(i+1)
+        # 料金計算オプション 選択
+        cssstr = "div.InstanceBillingSelectorDialog table.Types > tbody > tr:nth-child(" + paytypes[billing.strip()] + ") > td label"
+        self.get_element(cssstr).click()
+        # 料金計算オプション:閉じて保存 
+        time.sleep(0.1)
+        self.get_element("table.ContentContainer.InstanceSelectorContent > tbody > tr:nth-child(2) > td > table > tbody > tr > td:nth-child(3) > table > tbody > tr > td:nth-child(3) > button").click()
 
-    def set_instanceBilling(self, ec2conf):
-        pass 
-         
+    def add_ec2Instance(self, ec2conf, region):
+        # 追加ボタンを押す 
+        btn = self.get_element("div.Instances tr.footer div.gwt-PushButton > img[src$='add.png']")
+        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
+        # 追加された行
+        row = self.get_element('table.service.EC2Service div.Instances table>tbody>tr:nth-last-child(2)')
+        # インスタンス説明
+        if 'Description' in ec2conf:
+            self.set_value("table.SF_EC2_INSTANCE_FIELD_DESCRIPTION input", ec2conf['Description'], row)
+        # インスタンス数
+        if 'Quantity' in ec2conf:
+            self.set_value("table.SF_EC2_INSTANCE_FIELD_INSTANCES input", ec2conf['Quantity'], row, int)
+        # 使用料
+        if 'Usage' in ec2conf:
+           self.set_val_and_type("table.SF_EC2_INSTANCE_FIELD_USAGE", ec2conf['Usage'], row, int) 
+        # Instanceタイプ ダイヤログの設定
+        self.set_instanceType(ec2conf,row,region)
+        # 料金計算オプション ダイヤログの設定
+        if 'BillingOption' in ec2conf:
+            self.set_instanceBilling( ec2conf['BillingOption'] , row)
+    
+    def add_ebsVolume(self, ebsconf):
+        # 追加ボタンを押す 
+        btn = self.get_element("table.service.EC2Service div.Volumes tr.footer div.gwt-PushButton > img[src$='add.png']")
+        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
+        # 追加された行
+        row = self.get_element("table.service.EC2Service div.Volumes table>tbody>tr.EBSVolumeRow:nth-last-child(2)")
+        # Volume 説明
+        if 'Description' in ebsconf:
+            self.set_value("tr > td:nth-child(2) input.gwt-TextBox", ebsconf['Description'], row)
+        # Volume 数
+        if 'Quantity' in ebsconf:
+            self.set_value("tr > td:nth-child(3) input.gwt-TextBox", ebsconf['Quantity'], row, int)
+        # Volume タイプ
+        if 'EBSType' in ebsconf:
+            self.set_select('table.SF_EC2_EBS_FIELD_TYPE select', ebsconf['EBSType'], row)
+        # Volume サイズ
+        if 'Size' in ebsconf:
+            self.set_value('table.SF_EC2_EBS_FIELD_STORAGE input', ebsconf['Size'], row, int)
+        # Volume IOPS
+        if 'Iops' in ebsconf:
+            self.set_value('table.SF_EC2_EBS_FIELD_AVERAGE_IOPS input', ebsconf['Iops'], row, int)
+        # Snapshot 
+        if 'Snapshot' in ebsconf:
+            self.set_val_and_type('table.SF_EC2_EBS_FIELD_SNAPSHOT_STORAGE', ebsconf['Snapshot'], row)
+
+    def get_estimate_url(self,solution):
+        # 見積もりタブに移動
+        self.get_element('div.billLabel').click()  
+        # 保存して共有ボタンを押す
+        self.get_element('button.saveButton').click()
+        # 名前
+        if 'Name' in solution:
+            self.set_value('div.SolutionSaveDialog input.SC_SOLUTION_Input' , solution['Name'])
+        # 含まれるもの
+        if 'Includes' in solution:
+            self.set_textbox('div.SolutionSaveDialog textarea.SC_INCLUDES_Input', solution['Includes'])
+        # 説明
+        if 'Description' in solution:
+            self.set_textbox('div.SolutionSaveDialog textarea.SC_DESCRIPTION_Input', solution['Description'])
+        # URL取得
+        self.get_element("div.SolutionSaveDialog table.Buttons > tbody > tr > td > table > tbody > tr > td:nth-child(3) > button").click()
+        estimate = self.wait.until( expected_conditions.presence_of_element_located((By.ID,'saveURL')))
+        print >>sys.stderr, 'saved Url: ' +  estimate.get_attribute('href')
+        return estimate.get_attribute('href')
+             
     def is_member(self, target , cname):
         return cname in target.get_attribute("class").split(" ")
-
-    def get_estimate(self,bill):
-        # ちょっと待ってから[+]をクリックする TODO:料金表示のtab部分の変化をトリガーとする
-        time.sleep(4)
-        btns = self.get_elements("tr.columnTreeRow.summary[aria-hidden=false] img[src$='tree-up.png']", bill)
-        for btn in btns: 
-            btn.click()
-
-        # 月額合計
-        total_items =[] 
-        total = float(self.get_value('tr.total:not([aria-hidden]) table.value>tbody>tr>td:nth-child(2)>input',bill))
-        total_items.append({
-            'Name' : self.get_text('tr.total:not([aria-hidden])>td:nth-child(1)>div.gwt-HTML.label'),
-            'Price' : total
-        })
-        # サポートやリザーブ分を足す
-        totals = self.get_elements('tr.total[aria-hidden=false]',bill)
-        for t in totals:
-            #print self.get_text('tr>td>div.gwt-HTML.label',t), self.get_value('table.value>tbody>tr>td:nth-child(2)>input',t)
-            v = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input',t))
-            total_items.append({
-                'Name' : self.get_text('tr>td>div.gwt-HTML.label',t),
-                'Price' : v
-            })
-            total += v
-
-        # 展開された見積もりを順に取得
-        rows = self.get_elements("tr[aria-hidden=false]",bill)
-        estimate={
-            'Total' : total,
-            'TotalItems' : total_items,
-            'Detail' : []
-        }
-        s={}
-        for row in rows:
-            if self.is_member(row,'summary') :
-                if s : 
-                    estimate['Detail'].append(s)
-                s={}
-                # label
-                s['Name'] = self.get_text('td:nth-child(2)>div.label', row)
-                # subTotal
-                s['SubTotal'] = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input', row))
-                s['Items'] = []
-            elif self.is_member(row,'field'):
-                i = {}
-                # sublabel
-                i['Name'] = self.get_text('td:nth-child(1)>div.label', row)
-                # price
-                i['Price'] = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input',row))
-                if ('Items' in s ) : s['Items'].append(i)
-        # 見積もり合計値のチェック
-        self.check_estimate(estimate)
-        return estimate
-
-    def check_estimate(self, estimate):
-        # subTotalの合計が月額合計と等しいか
-        assert round(estimate['Total'],2)== round(sum([ a['SubTotal'] for a in estimate['Detail'] ] ),2)
-
-        #各subTotalが項目合計と等しいか
-        for field in estimate['Detail']:
-            #print field['Name'], field['SubTotal']  
-            assert round(field['SubTotal'],2) == round(sum([ a['Price']  for a in field['Items'] ]),2)
-                
 
     def disable_freetier(self):
         # 無料利用枠チェック外す
