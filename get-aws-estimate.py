@@ -172,14 +172,14 @@ class AwsEstimate():
         print >>sys.stderr, '# Getting SystemConfiguration ...'
         systemconf = {}
         for srvc in estimate['Estimate']['Detail']:
-            m = re.match(u'^(.*)Service（(.*)）.*', srvc['Name'])
+            m = re.match(u'^(.*)(サービス|Service)（(.*)）.*', srvc['Name'])
             if m  :
                 print >>sys.stderr, '    + ' + m.group(0)
-                sc= self.get_awsService( m.group(1).strip() , m.group(2).strip() ) 
+                sc= self.get_awsService( m.group(1).strip() , m.group(3).strip() ) 
                 systemconf.update(sc)
             else : # Region区別のないサービスの場合
                 n = re.match(u'^(.*) (サービス|Service)', srvc['Name'])
-                if n : 
+                if n :
                     print >>sys.stderr, '    + ' + n.group(0)
                     sc= self.get_awsService( n.group(1).strip() , None )
                     systemconf.update(sc)
