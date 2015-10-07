@@ -258,7 +258,7 @@ class AwsSystemConfig():
             ret = self.set_ec2Service(service_conf)
         # S3構成情報の設定
         elif ( service_name == 'Amazon S3' ):
-            ret = self.set_s3Service()
+            ret = self.set_s3Service(service_conf)
         # Route53情報の設定
         elif ( service_name == 'Amazon Route 53' ):
             ret = self.set_r53Service()
@@ -777,51 +777,31 @@ class AwsSystemConfig():
     # --------------------- S3 ----------------------
     def set_s3Service(self, conf):
         table = self.get_element('table.service.S3Service')
-        """
         #ストレージ:
         # 通常ストレージ
-        s3_size ,s3_size_unit = self.get_val_and_type("table.SF_S3_STORAGE", table)
+        if 'StandardStorage' in conf:
+            self.set_val_and_type('table.SF_S3_STORAGE', conf['StandardStorage'], table)
         # 低冗長ストレージ
-        rr_size ,rr_size_unit = self.get_val_and_type("table.SF_S3_RR_STORAGE", table)
+        if 'ReducedRedundancy' in conf:
+            self.set_val_and_type('table.SF_S3_RR_STORAGE', conf['ReducedRedundancy'], table)
         # リクエスト
         # PUT/COPY/POST/LIST リクエスト
-        req_put = int(self.get_value("table.SF_S3_PUT_COPY_POST_LIST_REQUESTS input", table))
+        if 'PutCopyPostListRequests' in conf:
+            self.set_value('table.SF_S3_PUT_COPY_POST_LIST_REQUESTS input', conf['PutCopyPostListRequests'], table, int)
         # GET とその他のリクエスト 
-        req_get =int(self.get_value("table.SF_S3_GET_OTHER_REQUESTS input", table))
+        if 'GetOtherRequests' in conf:
+            self.set_value('table.SF_S3_GET_OTHER_REQUESTS input', conf['GetOtherRequests'], table, int)
         # データ転送:
         # リージョン間データ転送送信:
-        inter_region , inter_region_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table)
+        if 'InterRegion' in conf:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(1)', conf['InterRegion'], table)
         # データ転送送信:
-        internet_out , internet_out_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(2)", table)
+        if 'InternetSend' in conf:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(2)', conf['InternetSend'], table)
         # データ転送受信:
-        internet_in , internet_in_type = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(3)", table)
-
-        return {
-            'StandardStorage': {
-                'Value' : s3_size,
-                'Type' : s3_size_unit
-            },
-            'ReducedRedundancy': {
-                'Value' : rr_size,
-                'Type' : rr_size_unit
-            },
-            'PutCopyPostListRequests' : req_put,
-            'GetOtherRequests' : req_get,
-            "InterRegion" : {
-                "Value" : inter_region,
-                "Type"  : inter_region_type
-            },
-            "InternetSend" : {
-                "Value" : internet_out,
-                "Type"  : internet_out_type
-            },
-            "InternetReceive" : {
-                "Value" : internet_in,
-                "Type"  : internet_in_type
-            }
-        }
-        """
-
+        if 'InternetReceive' in conf:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(3)', conf['InternetReceive'], table)
+        
     # --------------------- EC2 ----------------------
     def set_ec2Service(self, conf):
         table = self.get_element('table.service.EC2Service')
