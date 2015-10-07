@@ -194,6 +194,8 @@ class AwsSystemConfig():
         for k ,v in system_conf['SystemConfiguration'].items():
             print >>sys.stderr, '    + ' + k
             self.set_awsService( k, v )
+        # Supportは最後に設定する
+        ret = self.set_supportService(system_conf['SystemConfiguration'])
         # 保存して共有 
         print >>sys.stderr, '# Done.' 
         saved_url = self.get_estimate_url( system_conf['Solution'] )
@@ -245,6 +247,10 @@ class AwsSystemConfig():
         }
 
     def set_awsService(self, service_name, service_conf):
+        # Support設定は最後に行うためここではスキップ
+        if ( service_name == 'AWS Support' ):
+            return
+
         region_text = ''
         # Regionの指定があるとき
         if 'Region' in service_conf:
@@ -298,6 +304,24 @@ class AwsSystemConfig():
             self.get_screenshot( service_name.split(' ')[-1]+'-'+region_text.replace(' ', '') )
         
         return
+
+    # -------------------- AWS Support ----------------------
+    def set_supportService(self, sysconf):
+        # 該当サービスを表示
+        self.select_service('AWS Support')
+        # 
+        table = self.get_element('table.service.PremiumSupportService')
+        plans = self.get_elements('table.gwt-RadioButton.msgRadioButton',table)
+        # デフォルトの選択
+        self.get_element("input[type='radio']",plans[0] ).click()
+        if 'AWS Support' in sysconf :
+            conf = sysconf['AWS Support']
+            if 'Plan' in conf: 
+                for plan in plans:
+                    i = plan.text.strip().find( conf['Plan'] )
+                    if i >= 0 :
+                        self.get_element("input[type='radio']",plan).click()
+                        break
 
     # -------------------- ElastiCache ----------------------
     def set_elasticacheService(self):
