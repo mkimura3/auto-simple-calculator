@@ -172,8 +172,19 @@ class AwsEstimate():
         print >>sys.stderr, '# Getting SystemConfiguration ...'
         systemconf = {}
         for srvc in estimate['Estimate']['Detail']:
+            # AWS Supportの場合
+            sup = re.match(u'^AWS サポート（(.*)）', srvc['Name'])
+            if sup:
+                print >>sys.stderr, '    + ' + srvc['Name']
+                systemconf.update({
+                    "AWS Support" : {
+                        "Plan": sup.group(1).strip()
+                    }
+                })
+                continue
+            #
             m = re.match(u'^(.*)(サービス|Service)（(.*)）.*', srvc['Name'])
-            if m  :
+            if m  : # Regionありのサービスの場合
                 print >>sys.stderr, '    + ' + m.group(0)
                 sc= self.get_awsService( m.group(1).strip() , m.group(3).strip() ) 
                 systemconf.update(sc)
@@ -1069,7 +1080,7 @@ class AwsEstimate():
             if self.is_member(row,'summary') :
                 if s : 
                     estimate['Detail'].append(s)
-                s={}
+                    s={}
                 # label
                 s['Name'] = self.get_text('td:nth-child(2)>div.label', row)
                 # subTotal
@@ -1081,7 +1092,9 @@ class AwsEstimate():
                 i['Name'] = self.get_text('td:nth-child(1)>div.label', row)
                 # price
                 i['Price'] = float(self.get_value('table.value>tbody>tr>td:nth-child(2)>input',row))
-                if ('Items' in s ) : s['Items'].append(i)
+                if 'Items' in s  : s['Items'].append(i)
+        #
+        if s : estimate['Detail'].append(s)
         # 見積もり合計値のチェック
         self.check_estimate(estimate)
         return estimate
