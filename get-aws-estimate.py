@@ -225,9 +225,9 @@ class AwsEstimate():
         sc_desc = self.get_text("table.DescriptiveDetails div.SC_DESCRIPTION_DATA", solution)
 
         return {
-            'name' : sc_name,
-            'includes' : sc_include,
-            'description' : sc_desc
+            'Name' : sc_name,
+            'Includes' : sc_include,
+            'Description' : sc_desc
         }
 
     def get_awsService(self, service_name, region_name):
@@ -883,8 +883,10 @@ class AwsEstimate():
                 'Size' : size,
                 'Iops' : iops,
                 'EBSType' : ebs_type,
-                'SnapshotType' : snap_type,
-                'SnapshotSize' : snap_size
+                'Snapshot' : {
+                    'Type' : snap_type,
+                    'Value' : snap_size
+                }
             })
 
         # Elastic IP
