@@ -503,8 +503,8 @@ class AwsEstimate():
                 'CustomMetrics' : metrics,
                 'Frequency' : frequency,
                 'Alarms' : alarms,
-                'IngestedLogs' : ingested_log,
-                'ArchivedLogs' : archived_log
+                'IngestedLogSize' : ingested_log,
+                'ArchivedLogSize' : archived_log
             }
             custmetrics.append(cust)
 
