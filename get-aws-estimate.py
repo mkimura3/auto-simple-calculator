@@ -429,7 +429,7 @@ class AwsEstimate():
         return {
             'Requests' : request,
             'Notifications' : {
-                'Messages' : notify_size, 
+                'Value' : notify_size, 
                 'Type' : notify_type
             },
             'DataTransferOut': {
