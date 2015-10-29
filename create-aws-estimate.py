@@ -271,22 +271,22 @@ class AwsSystemConfig():
             ret = self.set_s3Service(service_conf)
         # Route53情報の設定
         elif ( service_name == 'Amazon Route 53' ):
-            ret = self.set_r53Service()
+            ret = self.set_r53Service(service_conf)
         # CloudFront情報の設定
         elif ( service_name == u'Amazon CloudFront' ):
-            ret = self.set_cloudfrontService()
+            ret = self.set_cloudfrontService(service_conf)
         # RDS構成情報の設定
         elif ( service_name == 'Amazon RDS' ):
             ret = self.set_rdsService(service_conf)
         # ElastiCache情報の設定
         elif ( service_name == 'Amazon ElastiCache' ):
-            ret = self.set_elasticacheService()
+            ret = self.set_elasticacheService(service_conf)
         # CloudWatch情報の設定
         elif ( service_name == u'Amazon CloudWatch' ):
             ret = self.set_cloudwatchService(service_conf)
         # SES情報の設定
         elif ( service_name == u'Amazon SES' ):
-            ret = self.set_sesService()
+            ret = self.set_sesService(service_conf)
         # SNS情報の設定
         elif ( service_name == u'Amazon SNS' ):
             ret = self.set_snsService(service_conf)
@@ -295,7 +295,7 @@ class AwsSystemConfig():
             ret = self.set_directconnectService(service_conf)
         # VPC情報の設定
         elif ( service_name == 'Amazon VPC' ):
-            ret = self.set_vpcService()
+            ret = self.set_vpcService(service_conf)
         # 未サポート
         else :
             print >>sys.stderr, service_name + ':' + region_text  + ':NotSupportedYet'
@@ -326,69 +326,44 @@ class AwsSystemConfig():
                         break
 
     # -------------------- ElastiCache ----------------------
-    def set_elasticacheService(self):
+    def set_elasticacheService(self, config):
         table = self.get_element('table.service.ElastiCacheService')
-        """
-        ####
         # キャッシュクラスター: オンデマンドキャッシュノード:
-        ondemandnodes = []
-        rows = self.get_elements('div.Nodes table.itemsTable tr.ElastiCacheOnDemandNodeRow.itemsTableDataRow', table)
-        for row in rows:
-            # クラスター名
-            desc = self.get_value("table.SF_EC_FIELD_DESCRIPTION input", row)
-            # ノード
-            quantity = int(self.get_value("table.SF_EC_FIELD_NODES input", row))
-            # 使用量
-            usage_val , usage_type = self.get_val_and_type("table.SF_EC_FIELD_USAGE", row)
-            # ノードタイプ
-            node_type = self.get_selectedText(self.get_element("table.SF_EC_FIELD_NODE_TYPE select", row))
-            node = {
-                'Description' : desc,
-                'Quantity' : quantity,
-                'Usage' : {
-                    'Value' : usage_val,
-                    'Type' : node_type
-                },
-                'NodeType' : node_type
-            }
-            ondemandnodes.append(node)
-        #
+        if 'OnDemandNodes' in config : 
+            for caconf in config['OnDemandNodes']:
+                self.add_cacheCluster(caconf)
         #キャッシュクラスター: リザーブドキャッシュノード:
-        reservednodes = []
-        rows = self.get_elements('div.ReservedNodes table.itemsTable tr.ElastiCacheReservedNodeRow.itemsTableDataRow', table)
-        for row in rows:
-            # クラスター名
-            desc = self.get_value("table.SF_EC_FIELD_DESCRIPTION input", row)
-            # ノード
-            quantity = int(self.get_value("table.SF_EC_FIELD_NODES input", row))
-            # 使用量
-            usage_val , usage_type = self.get_val_and_type("table.SF_EC_FIELD_USAGE", row)
-            # ノードタイプ
-            node_type = self.get_selectedText(self.get_element("table.SF_EC_FIELD_NODE_TYPE select", row))
-            # 提供内容
-            offering_type = self.get_selectedText(self.get_element("table.SF_EC2_RESERVED_FIELD_UTILIZATION select", row))
-            # 提供期間
-            offering_term = self.get_selectedText(self.get_element("table.SF_EC2_RESERVED_FIELD_TERM select", row))
-            
-            node = {
-                'Description' : desc,
-                'Quantity' : quantity,
-                'Usage' : {
-                    'Value' : usage_val,
-                    'Type' : node_type
-                },
-                'NodeType' : node_type,
-                'OfferingType' : offering_type,
-                'OfferingTerm' : offering_term
-            }
-            reservednodes.append(node)
-        #
-        return {
-            'OnDemandNodes' : ondemandnodes,
-            'ReservedNodes' : reservednodes
-        }
-        """
+        if 'ReservedNodes' in config : 
+            for caconf in config['ReservedNodes']:
+                self.add_cacheCluster(caconf,reserved=True)
 
+    def add_cacheCluster(self, conf, reserved=False):
+        divname = 'div.ReservedNodes' if reserved else 'div.Nodes'
+        # 追加ボタンを押す 
+        btn = self.get_element(divname + " tr.footer div.gwt-PushButton > img[src$='add.png']")
+        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
+        # 追加された行
+        row = self.get_element(divname + ' table>tbody>tr:nth-last-child(2)')
+        # クラスター名
+        if 'Description' in conf:
+            self.set_value('table.SF_EC_FIELD_DESCRIPTION input', conf['Description'], row)
+        # ノード数
+        if 'Quantity' in conf:
+            self.set_value('table.SF_EC_FIELD_NODES input', int(conf['Quantity']), row)
+        # 使用量
+        if 'Usage' in conf:
+            self.set_val_and_type('table.SF_EC_FIELD_USAGE', conf['Usage'], row, int)
+        # ノードタイプ
+        if 'NodeType' in conf:
+            self.set_select('table.SF_EC_FIELD_NODE_TYPE select', conf['NodeType'], row)
+        # Reservedの場合
+        if reserved :
+            # 提供内容
+            if 'OfferingType' in conf:
+                self.set_select('table.SF_EC2_RESERVED_FIELD_UTILIZATION select', conf['OfferingType'], row)
+            # 提供期間
+            if 'OfferingTerm' in conf:
+                self.set_select('table.SF_EC2_RESERVED_FIELD_TERM select', conf['OfferingTerm'], row)
         
     # -------------------- DirectConnect ----------------------
     def set_directconnectService(self, conf):
@@ -444,39 +419,24 @@ class AwsSystemConfig():
         if 'DataTransferIn' in config:
             self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(2)', config['DataTransferIn'], table)
         
- 
     # -------------------- SES ----------------------
-    def set_sesService(self):
+    def set_sesService(self,config):
         table = self.get_element('table.service.SESService')
-        """
         # メッセージ:
         ## Eメールメッセージ:
-        emails = int(self.get_value("table.SF_SES_EMAIL_MESSAGES input", table))
+        if 'emailMessages' in config:
+            self.set_value('table.SF_SES_EMAIL_MESSAGES input', int(config['emailMessages']), table)
         # 添付ファイル:
         ## データ転送送信（添付ファイル）:
-        attach_size , attach_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table) 
+        if 'AttachmentsOut' in config:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(1)', config['AttachmentsOut'], table)
         # データ転送:
         ## データ転送送信:
-        send_size , send_unit = self.get_val_and_type("table.subSection:nth-child(4) div.subContent > table:nth-child(1)", table) 
+        if 'DataTransferOut' in config:
+            self.set_val_and_type('table.subSection:nth-child(4) div.subContent > table:nth-child(1)', config['DataTransferOut'], table)
         ## データ転送受信:
-        recv_size , recv_unit = self.get_val_and_type("table.subSection:nth-child(4) div.subContent > table:nth-child(2)", table) 
-        
-        return {
-            'emailMessages': emails ,
-            'AttachmentsOut': {
-                'Value' : attach_size,
-                'Type' : attach_unit
-            },
-            'DataTransferOut': {
-                'Value' : send_size,
-                'Type' : send_unit
-            },
-            'DataTransferIn': {
-                'Value' : recv_size,
-                'Type' : recv_unit
-            }
-        }
-        """
+        if 'DataTransferIn' in config:
+            self.set_val_and_type('table.subSection:nth-child(4) div.subContent > table:nth-child(2)', config['DataTransferIn'], table)
         
     # -------------------- CloudWatch ----------------------
     def set_cloudwatchService(self, conf):
@@ -488,7 +448,6 @@ class AwsSystemConfig():
         ## EC2 インスタンス
         if 'EC2Alarms' in conf:
             self.set_value('table.SF_CW_EC2_ALARMS input', conf['EC2Alarms'], table, int)
-        ec2_alarms = int(self.get_value("table.SF_CW_EC2_ALARMS input", table))
         ## Elastic Load Balancing
         if 'ELBAlarms' in conf:
             self.set_value('table.SF_CW_ELB_ALARMS input', conf['ELBAlarms'], table, int)
@@ -531,178 +490,121 @@ class AwsSystemConfig():
         if 'ArchivedLogSize' in metric:
             self.set_value('table.SF_CW_FIELD_INGESTED_LOGS input', metric['ArchivedLogSize'] , row, int)
 
-        """
-
-        
-        return {
-            'CustomMetrics' : custmetrics,
-            'EC2Alarms' : ec2_alarms,
-            'ELBAlarms' : elb_alarms,
-            'EBSAlarms' : ebs_alarms,
-            'RDSAlarms' : rds_alarms,
-            'AutoScalingAlarms' : as_alarms
-        }
-        """
-        
     # -------------------- CloudFront ----------------------
-    def set_cloudfrontService(self):
+    def set_cloudfrontService(self,config):
         table = self.get_element('table.service.CloudFrontService')
-        """
         # データ転送送信:
         #   毎月のボリューム:
-        trans_size ,trans_unit = self.get_val_and_type("div.body > table.subSection:nth-child(1) div.subContent table.amountField", table)
+        if 'MonthlyVolume' in config:
+            self.set_val_and_type('div.body > table.subSection:nth-child(1) div.subContent table.amountField', config['MonthlyVolume'], table )
         # リクエスト:
         #   平均オブジェクトサイズ:
-        avg_object_size = int(self.get_value("table.SF_CLOUD_FRONT_AVERAGE_OBJECT_SIZE input", table))
+        if 'AverageObjectSize' in config:
+            self.set_value('table.SF_CLOUD_FRONT_AVERAGE_OBJECT_SIZE input', int(config['AverageObjectSize']), table)
         #   リクエストのタイプ:
-        # HTTPにチェック
-        if self.is_checked("table.SF_CLOUD_FRONT_TYPE_OF_REQUESTS td.Column0 input[type='radio']") :
-            request_type ='HTTP'
-        else:
-            request_type ='HTTPS'
+        if 'RequestType' in config:
+            if config['RequestType'] == 'HTTP' :
+                rd_http = self.get_element("table.SF_CLOUD_FRONT_TYPE_OF_REQUESTS td.Column0 input[type='radio']",table)
+                rd_http.click()
+            elif config['RequestType'] == 'HTTPS':
+                rd_ssl  = self.get_element("table.SF_CLOUD_FRONT_TYPE_OF_REQUESTS td.Column1 input[type='radio']",table)
+                rd_ssl.click()
         #   無効化リクエスト:
-        request_invalid = int(self.get_value("table.SF_CLOUD_FRONT_INVALIDATION_REQUESTS input", table)) 
+        if 'InvalidationRequests' in config:
+            self.set_value('table.SF_CLOUD_FRONT_INVALIDATION_REQUESTS input', int(config['InvalidationRequests']), table)
         # エッジロケーションのトラフィックディストリビューション:
-        #   米国
-        percent_us = int(self.get_value("table.SF_CLOUD_FRONT_TIER_US input", table)) 
-        #   欧州
-        percent_eu = int(self.get_value("table.SF_CLOUD_FRONT_TIER_EU input", table)) 
-        #   香港、フィリピン、韓国、シンガポールおよび台湾
-        percent_hk = int(self.get_value("table.SF_CLOUD_FRONT_TIER_HK input", table)) 
-        #   日本
-        percent_jp = int(self.get_value("table.SF_CLOUD_FRONT_TIER_JP input", table)) 
-        #   南米
-        percent_sa = int(self.get_value("table.SF_CLOUD_FRONT_TIER_SA input", table)) 
-        #   オーストラリア
-        percent_au = int(self.get_value("table.SF_CLOUD_FRONT_TIER_AU input", table)) 
-        #   インド
-        percent_in = int(self.get_value("table.SF_CLOUD_FRONT_TIER_IN input", table)) 
-
+        if 'EdgeLocationDistribution' in config:
+            edge = config['EdgeLocationDistribution']
+            #   米国
+            self.set_value('table.SF_CLOUD_FRONT_TIER_US input', int(edge['US']), table)
+            #   欧州
+            self.set_value('table.SF_CLOUD_FRONT_TIER_EU input', int(edge['EU']), table)
+            #   香港、フィリピン、韓国、シンガポールおよび台湾
+            self.set_value('table.SF_CLOUD_FRONT_TIER_HK input', int(edge['HK']), table)
+            #   日本
+            self.set_value('table.SF_CLOUD_FRONT_TIER_JP input', int(edge['JP']), table)
+            #   南米
+            self.set_value('table.SF_CLOUD_FRONT_TIER_SA input', int(edge['SA']), table)
+            #   オーストラリア
+            self.set_value('table.SF_CLOUD_FRONT_TIER_AU input', int(edge['AU']), table)
+            #   インド
+            self.set_value('table.SF_CLOUD_FRONT_TIER_IN input', int(edge['IN']), table)
         # 専用 IP SSL 証明書:
         #   証明書の数:
-        custom_ssl = int(self.get_value("table.SF_CLOUD_FRONT_CUSTOM_SSL_CERTS input", table)) 
-        
-        return {
-            'MonthlyVolume' : {
-                'Value' : trans_size,
-                'Type' : trans_unit
-            },
-            'AverageObjectSize': avg_object_size,
-            'RequestType' : request_type,
-            'InvalidationRequests' : request_invalid,
-            'EdgeLocationDistribution' : {
-                'US': percent_us,
-                'EU': percent_eu,
-                'HK': percent_hk,
-                'JP': percent_jp,
-                'SA': percent_sa,
-                'AU': percent_au,
-                'IN': percent_in
-            },
-            'CustomCertificates' : custom_ssl
-        }
-        """
+        if 'CustomCertificates' in config:
+            self.set_value('table.SF_CLOUD_FRONT_CUSTOM_SSL_CERTS input', int(config['CustomCertificates']), table)
 
     # -------------------- Route53 ----------------------
-    def set_r53Service(self):
+    def set_r53Service(self,config):
         table = self.get_element('table.service.Route53Service')
-        """
         # ホストゾーン
         #   ホストゾーン:
-        hosted_zone = int(self.get_value("table.SF_ROUTE_53_HOSTED_ZONES input", table))
+        if 'HostedZones' in config:
+            self.set_value('table.SF_ROUTE_53_HOSTED_ZONES input' , int(config['HostedZones']) , table )
         #   標準的クエリ:
-        std_query ,std_unit = self.get_val_and_type("table.SF_ROUTE_53_STANDARD_QUERIES", table)
+        if 'StandardQueries' in config:
+            self.set_val_and_type('table.SF_ROUTE_53_STANDARD_QUERIES', config['StandardQueries'], table)
         #   レイテンシーベースルーティングクエリ:
-        latency_query ,latency_unit = self.get_val_and_type("table.SF_ROUTE_53_LATENCY_QUERIES", table)
+        if 'LatencyQueries' in config:
+            self.set_val_and_type('table.SF_ROUTE_53_LATENCY_QUERIES', config['LatencyQueries'], table)
         #   Geo DNS クエリ:
-        geo_query ,geo_unit = self.get_val_and_type("table.SF_ROUTE_53_GEO_DNS_QUERIES", table)
-
+        if 'GEOQueries' in config:
+            self.set_val_and_type('table.SF_ROUTE_53_GEO_DNS_QUERIES', config['GEOQueries'], table)
         # エンドポイントの DNS フェイルオーバーヘルスチェック
         #   Basic Checks Within AWS:
-        basic_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_BASIC_CHECKS input", table))
+        if 'BasicChecksInternal' in config:
+            self.set_value('table.SF_ROUTE_53_INTERNAL_BASIC_CHECKS input', int(config['BasicChecksInternal']), table)
         #   Basic Checks Outside of AWS:
-        basic_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_BASIC_CHECKS input", table))
+        if 'BasicChecksExternal' in config:
+            self.set_value('table.SF_ROUTE_53_EXTERNAL_BASIC_CHECKS input', int(config['BasicChecksExternal']), table)
         #   HTTPS Checks Within AWS:
-        http_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_HTTPS_CHECKS input", table))
+        if 'HTTPSChecksInternal' in config:
+            self.set_value('table.SF_ROUTE_53_INTERNAL_HTTPS_CHECKS input', int(config['HTTPSChecksInternal']), table)
         #   HTTPS Checks Outside of AWS:
-        http_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_HTTPS_CHECKS  input", table))
+        if 'HTTPSChecksExternal' in config:
+            self.set_value('table.SF_ROUTE_53_EXTERNAL_HTTPS_CHECKS input', int(config['HTTPSChecksExternal']), table)
         #   String Matching Checks Within AWS:
-        string_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_STRINGMATCHING_CHECKS input", table))
+        if 'StringChecksInternal' in config:
+            self.set_value('table.SF_ROUTE_53_INTERNAL_STRINGMATCHING_CHECKS input', int(config['StringChecksInternal']), table)
         #   String Matching Checks Outside of AWS:
-        string_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_STRINGMATCHING_CHECKS input", table))
+        if 'StringChecksExternal' in config:
+            self.set_value('table.SF_ROUTE_53_EXTERNAL_STRINGMATCHING_CHECKS input', int(config['StringChecksExternal']), table)
         #   Fast Interval Checks Within AWS:
-        fast_internal = int(self.get_value("table.SF_ROUTE_53_INTERNAL_FASTINTERVAL_CHECKS input", table))
+        if 'FastintervalChecksInternal' in config:
+            self.set_value('table.SF_ROUTE_53_INTERNAL_FASTINTERVAL_CHECKS input', int(config['FastintervalChecksInternal']), table)
         #   Fast Interval Checks Outside of AWS:
-        fast_external = int(self.get_value("table.SF_ROUTE_53_EXTERNAL_FASTINTERVAL_CHECKS input", table))
-
-        return {
-            'HostedZones' : hosted_zone,
-            'StandardQueries' : { 
-                'Value' : std_query,
-                'Type' : std_unit
-            },
-            'LatencyQueries' : { 
-                'Value' : latency_query,
-                'Type' : latency_unit
-            },
-            'GEOQueries' : { 
-                'Value' : geo_query,
-                'Type' : geo_unit
-            },
-            'BasicChecksInternal' : basic_internal,
-            'BasicChecksExternal' : basic_external,
-            'HTTPChecksInternal' : http_internal,
-            'HTTPChecksExternal' : http_external,
-            'StringChecksInternal' : string_internal,
-            'StringChecksExternal' : string_external,
-            'FastintervalChecksInternal' : fast_internal,
-            'FastintervalChecksExternal' : fast_external
-        }
-        """
+        if 'FastintervalChecksExternal' in config:
+            self.set_value('table.SF_ROUTE_53_EXTERNAL_FASTINTERVAL_CHECKS input', int(config['FastintervalChecksExternal']), table)
 
     # -------------------- VPC ----------------------
-    def set_vpcService(self):
-        table = self.get_element('table.service.VPNService')
-        """
-        # waitを短く
-        self.driver.implicitly_wait(1)  
-        ####
+    def set_vpcService(self,config):
+        #table = self.get_element('table.service.VPNService')
         # インスタンス
-        vpccons = []
-        rows = self.get_elements('div.VPNConnections table.itemsTable tr.VPNConnectionRow.itemsTableDataRow', table)
-        for row in rows:
-            # VPC説明
-            desc = self.get_value("table.SF_VPC_FIELD_DESCRIPTION input", row)
-            # 接続数
-            quantity = int(self.get_value("table.SF_VPC_FIELD_INSTANCES input", row))
-            # 使用量
-            usage_val,  usage_type = self.get_val_and_type('table.SF_VPC_FIELD_USAGE', row)
-            # データ転送送信
-            send_data,  send_type = self.get_val_and_type('tr>td.cell:nth-child(5)>table.dataTransferField.amountField', row)
-            # データ転送受信
-            recv_data,  recv_type = self.get_val_and_type('tr>td.cell:nth-child(6)>table.dataTransferField.amountField', row)
-                 
-            vpccon= {
-                'Description' : desc,
-                'Quantity' : quantity,
-                'Usage' : {
-                    'Value' : usage_val,
-                    'Type' : usage_type,
-                },
-                'DataCenterSend' : {
-                        'Value' : send_data,
-                        'Type'  : send_type
-                },
-                'DataCenterReceive' : {
-                    'Value' : recv_data,
-                    'Type'  : recv_type
-                }
-            }
-            vpccons.append(vpccon)
-        return {
-            'VPCConnections' : vpccons
-        }
-        """
+        if 'VPCConnections' in config:
+            for vconf in config['VPCConnections']:
+                self.add_vpc(vconf)
+
+    def add_vpc(self, vconf):
+        # 追加ボタンを押す 
+        btn = self.get_element("div.VPNConnections table.itemsTable tr.footer div.gwt-PushButton > img[src$='add.png']")
+        ActionChains(self.driver).move_to_element(btn).click(btn).perform()
+        # 追加された行
+        row = self.get_element('div.VPNConnections table>tbody>tr:nth-last-child(2)')
+        # VPC説明
+        if 'Description' in vconf:
+            self.set_value('table.SF_VPC_FIELD_DESCRIPTION input', vconf['Description'], row)
+        # 接続数
+        if 'Quantity' in vconf:
+            self.set_value('table.SF_VPC_FIELD_INSTANCES input', int(vconf['Quantity']), row)
+        # 使用量
+        if 'Usage' in vconf:
+            self.set_val_and_type('table.SF_VPC_FIELD_USAGE', vconf['Usage'], row, int)
+        # データ転送送信
+        if 'DataCenterSend' in vconf:
+            self.set_val_and_type('tr>td.cell:nth-child(5)>table.dataTransferField.amountField', vconf['DataCenterSend'], row)
+        # データ転送受信
+        if 'DataCenterReceive' in vconf:
+            self.set_val_and_type('tr>td.cell:nth-child(6)>table.dataTransferField.amountField', vconf['DataCenterReceive'], row)
 
     # -------------------- RDS ----------------------
     def set_rdsService(self,conf):
