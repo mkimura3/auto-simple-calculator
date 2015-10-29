@@ -5,10 +5,10 @@ from base.AwsService import AwsService
 
 class CloudFront(AwsService):
     def set_serviceConfig(self, config):
-        self.set_cloudFrontService(config)
+        self.set_cloudfrontService(config)
 
     def get_serviceConfig(self):
-        ret=self.get_cloudFrontService()
+        ret=self.get_cloudfrontService()
         return ret
 
     def get_cloudfrontService(self):
