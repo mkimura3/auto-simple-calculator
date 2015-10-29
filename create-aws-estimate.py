@@ -4,14 +4,16 @@
 """Create Estimate Using AWS SIMPLE MONTHLY CALCULATOR
 
 Usage:
-    create-aws-estimate.py (-f | --file) <SystemConfigFile> (-s | --server) <SeleniumServerURL> [options]
+    create-aws-estimate.py  -f <configFile> -s <serverURL> [options]
 
 Options:
-    -h,--help           Show this screen.
-    --version           Show version.
-    -d <driver_type>    Selenium WebDriver Type [default: FIREFOX]
-    -p <file_prefix>    ScreenshotFile prefix name [default: aws-]
-    --screen            Take Sceenshot
+    -f,--file <configFile>   AWS SystemConfig File.
+    -s,--server <serverURL>  SeleniumServer URL.
+    -h,--help                Show this screen.
+    --version                Show version.
+    -d <driver_type>         Selenium WebDriver Type [default: FIREFOX]
+    -p <file_prefix>         ScreenshotFile prefix name [default: aws-]
+    --screen                 Take Sceenshot
 """
 
 
@@ -287,7 +289,7 @@ class AwsSystemConfig():
             ret = self.set_sesService()
         # SNS情報の設定
         elif ( service_name == u'Amazon SNS' ):
-            ret = self.set_snsService()
+            ret = self.set_snsService(service_conf)
         # DirectConnect情報の設定
         elif ( service_name == u'AWS Direct Connect' ):
             ret = self.set_directconnectService(service_conf)
@@ -425,36 +427,23 @@ class AwsSystemConfig():
             self.set_val_and_type('tr > td.cell:nth-child(7) > table', dconf['DataTransferOut'], row)
      
     # -------------------- SNS ----------------------
-    def set_snsService(self):
+    def set_snsService(self,config):
         table = self.get_element('table.service.SNSService')
-        """
         # リクエストと通知:
         ## リクエスト:
-        request = int(self.get_value("table.SF_SNS_REQUESTS input", table))
+        if 'Requests' in config:
+            self.set_value('table.SF_SNS_REQUESTS input', int(config['Requests']), table)
         ## 通知:
-        notify_size, notify_type = self.get_val_and_type("table.SF_SNS_NOTIFICATIONS", table)
+        if 'Notifications' in config :
+            self.set_val_and_type('table.SF_SNS_NOTIFICATIONS', config['Notifications'], table, int)
         # データ転送:
         ## データ転送送信
-        send_size , send_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(1)", table) 
+        if 'DataTransferOut' in config:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(1)', config['DataTransferOut'], table)
         ## データ転送受信
-        recv_size , recv_unit = self.get_val_and_type("table.subSection:nth-child(3) div.subContent > table:nth-child(2)", table) 
-    
-        return {
-            'Requests' : request,
-            'Notifications' : {
-                'Messages' : notify_size, 
-                'Type' : notify_type
-            },
-            'DataTransferOut': {
-                'Value' : send_size,
-                'Type' : send_unit
-            },
-            'DataTransferIn': {
-                'Value' : recv_size,
-                'Type' : recv_unit
-            }
-        }  
-        """
+        if 'DataTransferIn' in config:
+            self.set_val_and_type('table.subSection:nth-child(3) div.subContent > table:nth-child(2)', config['DataTransferIn'], table)
+        
  
     # -------------------- SES ----------------------
     def set_sesService(self):
@@ -1052,7 +1041,7 @@ if __name__ == "__main__":
 
     print >>sys.stderr, args
 
-    filename = args['<SystemConfigFile>']
+    filename = args['--file']
     fp=open(filename,'r')
     text=fp.read()
     fp.close()
@@ -1063,7 +1052,7 @@ if __name__ == "__main__":
  
     ac = AwsSystemConfig(
         system_conf=sysconf, 
-        server_url=args['<SeleniumServerURL>'],
+        server_url=args['--server'],
         driver_type=args['-d'],
         file_prefix=args['-p'],
         screenshot=args['--screen'] )
