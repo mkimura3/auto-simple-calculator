@@ -93,8 +93,8 @@ class CloudWatch(AwsService):
         # 追加された行
         row = self.get_element('div.CustomMetrics table>tbody>tr:nth-last-child(2)')
         # 説明
-        if 'Destciption' in metric:
-            self.set_value('table.SF_CW_FIELD_DESCRIPTION input', metric['Destciption'], row)
+        if 'Description' in metric:
+            self.set_value('table.SF_CW_FIELD_DESCRIPTION input', metric['Description'], row)
         # AWS リソース
         if 'Resources' in metric:
             self.set_value('table.SF_CW_FIELD_RESOURCES input', metric['Resources'], row, int)
