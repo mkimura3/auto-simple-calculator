@@ -1,34 +1,56 @@
 {
     "SystemConfiguration": {
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }, 
         "Amazon S3": {
-            "GetOtherRequests": 20000, 
             "InternetSend": {
                 "Type": "TB/月", 
                 "Value": 40.0
             }, 
-            "PutCopyPostListRequests": 10000, 
             "InterRegion": {
                 "Type": "GB/月", 
                 "Value": 30.0
             }, 
             "Region": "アジアパシフィック（日本）", 
             "StandardStorage": {
-                "Type": "GB", 
-                "Value": 10.0
+                "GetOtherRequests": 2000, 
+                "PutCopyPostListRequests": 1000, 
+                "Size": {
+                    "Type": "GB", 
+                    "Value": 100.0
+                }
             }, 
             "InternetReceive": {
                 "Type": "TB/月", 
                 "Value": 50.0
             }, 
             "ReducedRedundancy": {
-                "Type": "TB", 
-                "Value": 20.0
+                "GetOtherRequests": 5000, 
+                "PutCopyPostListRequests": 4000, 
+                "Size": {
+                    "Type": "PB", 
+                    "Value": 0.01
+                }
+            }, 
+            "InfrequentAccessStorage": {
+                "GetOtherRequests": 3000, 
+                "LifecycleTransitions": 10000, 
+                "PutCopyPostListRequests": 2000, 
+                "DataRetrieval": {
+                    "Type": "TB", 
+                    "Value": 0.6
+                }, 
+                "Size": {
+                    "Type": "TB", 
+                    "Value": 1.8
+                }
             }
         }
     }, 
     "Solution": {
-        "Description": "DDDDD", 
-        "Name": "BBB", 
-        "Includes": "CCCC"
+        "Description": "CCCCC", 
+        "Name": "AAAA", 
+        "Includes": "BBBBB"
     }
 }
