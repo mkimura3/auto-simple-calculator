@@ -327,7 +327,7 @@ class AwsEstimate():
                 'Quantity' : quantity,
                 'Usage' : {
                     'Value' : usage_val,
-                    'Type' : node_type
+                    'Type' : usage_type
                 },
                 'NodeType' : node_type
             }
@@ -355,7 +355,7 @@ class AwsEstimate():
                 'Quantity' : quantity,
                 'Usage' : {
                     'Value' : usage_val,
-                    'Type' : node_type
+                    'Type' : usage_type
                 },
                 'NodeType' : node_type,
                 'OfferingType' : offering_type,
