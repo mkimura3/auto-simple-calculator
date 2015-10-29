@@ -1,0 +1,28 @@
+{
+    "SystemConfiguration": {
+        "Amazon SES": {
+            "DataTransferOut": {
+                "Type": "GB/週", 
+                "Value": 20.0
+            }, 
+            "emailMessages": 123450, 
+            "Region": "アジアパシフィック（日本）", 
+            "AttachmentsOut": {
+                "Type": "GB/月", 
+                "Value": 10.6
+            }, 
+            "DataTransferIn": {
+                "Type": "GB/日", 
+                "Value": 30.2
+            }
+        }, 
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }
+    }, 
+    "Solution": {
+        "Description": "CC", 
+        "Name": "AA", 
+        "Includes": "BB"
+    }
+}

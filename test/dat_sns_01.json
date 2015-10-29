@@ -1,0 +1,28 @@
+{
+    "SystemConfiguration": {
+        "Amazon SNS": {
+            "DataTransferOut": {
+                "Type": "TB/月", 
+                "Value": 0.789
+            }, 
+            "Notifications": {
+                "Type": "EMAIL/EMAIL-JSON", 
+                "Value": 876543.0
+            }, 
+            "Requests": 12345670, 
+            "Region": "アジアパシフィック（日本）", 
+            "DataTransferIn": {
+                "Type": "GB/週", 
+                "Value": 12.3
+            }
+        }, 
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }
+    }, 
+    "Solution": {
+        "Description": "CC", 
+        "Name": "AA", 
+        "Includes": "BB"
+    }
+}

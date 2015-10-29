@@ -1,0 +1,49 @@
+{
+    "SystemConfiguration": {
+        "Amazon VPC": {
+            "VPCConnections": [
+                {
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100.0
+                    }, 
+                    "DataCenterReceive": {
+                        "Type": "GB/週", 
+                        "Value": 20.4
+                    }, 
+                    "DataCenterSend": {
+                        "Type": "GB/月", 
+                        "Value": 10.2
+                    }, 
+                    "Description": "vpc01", 
+                    "Quantity": 1
+                }, 
+                {
+                    "Usage": {
+                        "Type": "時間/月", 
+                        "Value": 200.0
+                    }, 
+                    "DataCenterReceive": {
+                        "Type": "GB/日", 
+                        "Value": 5.8
+                    }, 
+                    "DataCenterSend": {
+                        "Type": "TB/月", 
+                        "Value": 0.5
+                    }, 
+                    "Description": "vpc02", 
+                    "Quantity": 2
+                }
+            ], 
+            "Region": "アジアパシフィック（日本）"
+        }, 
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }
+    }, 
+    "Solution": {
+        "Description": "EE", 
+        "Name": "QQ", 
+        "Includes": "WW"
+    }
+}

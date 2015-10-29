@@ -1,0 +1,59 @@
+{
+    "SystemConfiguration": {
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }, 
+        "Amazon ElastiCache": {
+            "OnDemandNodes": [
+                {
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100.0
+                    }, 
+                    "NodeType": "cache.t2.micro", 
+                    "Description": "cluster01", 
+                    "Quantity": 3
+                }, 
+                {
+                    "Usage": {
+                        "Type": "時間/週", 
+                        "Value": 120.0
+                    }, 
+                    "NodeType": "cache.m2.2xlarge", 
+                    "Description": "cluster02", 
+                    "Quantity": 1
+                }
+            ], 
+            "Region": "アジアパシフィック（日本）", 
+            "ReservedNodes": [
+                {
+                    "OfferingType": "重度使用", 
+                    "NodeType": "cache.m3.medium", 
+                    "Description": "rsrv01", 
+                    "OfferingTerm": "3 年間", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 80.0
+                    }, 
+                    "Quantity": 4
+                }, 
+                {
+                    "OfferingType": "軽度使用", 
+                    "NodeType": "cache.m2.xlarge", 
+                    "Description": "rsrv02", 
+                    "OfferingTerm": "1 年間", 
+                    "Usage": {
+                        "Type": "時間/日", 
+                        "Value": 20.0
+                    }, 
+                    "Quantity": 2
+                }
+            ]
+        }
+    }, 
+    "Solution": {
+        "Description": "333", 
+        "Name": "555", 
+        "Includes": "444"
+    }
+}

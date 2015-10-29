@@ -1,0 +1,35 @@
+{
+    "SystemConfiguration": {
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }, 
+        "Amazon Route 53": {
+            "HTTPSChecksInternal": 30, 
+            "StringChecksExternal": 60, 
+            "FastintervalChecksExternal": 80, 
+            "StandardQueries": {
+                "Type": "回/月", 
+                "Value": 10.8
+            }, 
+            "BasicChecksExternal": 20, 
+            "HTTPSChecksExternal": 40, 
+            "StringChecksInternal": 50, 
+            "HostedZones": 3, 
+            "LatencyQueries": {
+                "Type": "回/週", 
+                "Value": 30.2
+            }, 
+            "BasicChecksInternal": 10, 
+            "GEOQueries": {
+                "Type": "回/日", 
+                "Value": 50.8
+            }, 
+            "FastintervalChecksInternal": 70
+        }
+    }, 
+    "Solution": {
+        "Description": "CCC", 
+        "Name": "AAA", 
+        "Includes": "BBB"
+    }
+} 

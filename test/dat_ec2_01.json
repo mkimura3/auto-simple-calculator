@@ -1,0 +1,344 @@
+{
+    "SystemConfiguration": {
+        "Amazon EC2": {
+            "ElasticIp": {
+                "UnAttached": {
+                    "Type": "時間/月", 
+                    "Value": 10.0
+                }, 
+                "Remaps": {
+                    "Type": "回/月", 
+                    "Value": 5.0
+                }, 
+                "Quantity": 1.0
+            }, 
+            "Region": "アジアパシフィック（日本）", 
+            "Instances": [
+                {
+                    "Dedicated": false, 
+                    "DetailedMonitor": false, 
+                    "EbsOptimized": false, 
+                    "BillingOption": "1 年間、前払いなし、リザーブド", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "m4.large", 
+                    "Description": "1"
+                }, 
+                {
+                    "Dedicated": false, 
+                    "DetailedMonitor": false, 
+                    "EbsOptimized": true, 
+                    "BillingOption": "1 年間、一部前払い、リザーブド", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Windows", 
+                    "InstanceType": "m4.large", 
+                    "Description": "2"
+                }, 
+                {
+                    "Dedicated": false, 
+                    "DetailedMonitor": true, 
+                    "EbsOptimized": false, 
+                    "BillingOption": "1 年間、すべて前払い、リザーブド", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "t1.micro", 
+                    "Description": "3"
+                }, 
+                {
+                    "Dedicated": true, 
+                    "DetailedMonitor": false, 
+                    "EbsOptimized": false, 
+                    "BillingOption": "3 年間、一部前払い、リザーブド", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "m4.large", 
+                    "Description": "4"
+                }, 
+                {
+                    "Dedicated": false, 
+                    "DetailedMonitor": true, 
+                    "EbsOptimized": true, 
+                    "BillingOption": "3 年間、すべて前払い、リザーブド", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "m4.large", 
+                    "Description": "5"
+                }, 
+                {
+                    "Dedicated": true, 
+                    "DetailedMonitor": false, 
+                    "EbsOptimized": true, 
+                    "BillingOption": "オンデマンド（契約不要）", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "m4.large", 
+                    "Description": "6"
+                }, 
+                {
+                    "Dedicated": true, 
+                    "DetailedMonitor": true, 
+                    "EbsOptimized": false, 
+                    "BillingOption": "オンデマンド（契約不要）", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "hi1.4xlarge", 
+                    "Description": "7"
+                }, 
+                {
+                    "Dedicated": true, 
+                    "DetailedMonitor": true, 
+                    "EbsOptimized": true, 
+                    "BillingOption": "オンデマンド（契約不要）", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "Quantity": 1, 
+                    "OS": "Linux", 
+                    "InstanceType": "m4.large", 
+                    "Description": "8"
+                }
+            ], 
+            "ElasticLoadBalancing": {
+                "ELBTransfer": {
+                    "Type": "GB/月", 
+                    "Value": 15.0
+                }, 
+                "Quantity": 1.0
+            }, 
+            "Storages": [
+                {
+                    "Snapshot" : {
+                        "Type": "ストレージの GB-月",
+                        "Value": 5.5
+                    },
+                    "Description": "Root Linux Volume", 
+                    "Quantity": 1, 
+                    "Iops": 0, 
+                    "EBSType": "マグネティック", 
+                    "Size": 5
+                }, 
+                {
+                    "Snapshot" : {
+                        "Type": "ストレージの GB-月",
+                        "Value": 5.5
+                    },
+                    "Description": "Data Linux Volume", 
+                    "Quantity": 1, 
+                    "Iops": 0, 
+                    "EBSType": "マグネティック", 
+                    "Size": 10
+                }, 
+                {
+                    "Snapshot" : {
+                        "Type": "ストレージの GB-月",
+                        "Value": 5.5
+                    },
+                    "Description": "Root Windows Volume", 
+                    "Quantity": 1, 
+                    "Iops": 0, 
+                    "EBSType": "マグネティック", 
+                    "Size": 5
+                }, 
+                {
+                    "Snapshot" : {
+                        "Type": "ストレージの GB-月",
+                        "Value": 5.5
+                    },
+                    "Description": "Data Windows Volume", 
+                    "Quantity": 1, 
+                    "Iops": 0, 
+                    "EBSType": "マグネティック", 
+                    "Size": 10
+                }
+            ], 
+            "DataTranfer": {
+                "InternetSend": {
+                    "Type": "GB/月", 
+                    "Value": 10.0
+                }, 
+                "VpnPeers": {
+                    "Type": "GB/週", 
+                    "Value": 4.0
+                }, 
+                "InterRegion": {
+                    "Type": "GB/日", 
+                    "Value": 3.0
+                }, 
+                "InternetReceive": {
+                    "Type": "GB/月", 
+                    "Value": 20.0
+                }, 
+                "IntraRegionEIPELB": {
+                    "Type": "GB/週", 
+                    "Value": 2.0
+                }, 
+                "IntraRegion": {
+                    "Type": "GB/日", 
+                    "Value": 1.0
+                }
+            }
+        }, 
+        "Amazon SES": {
+            "DataTransferOut": {
+                "Type": "GB/月", 
+                "Value": 0.0
+            }, 
+            "emailMessages": 2000, 
+            "Region": "アジアパシフィック（日本）", 
+            "AttachmentsOut": {
+                "Type": "GB/月", 
+                "Value": 0.0
+            }, 
+            "DataTransferIn": {
+                "Type": "GB/月", 
+                "Value": 1.0
+            }
+        }, 
+        "AWS Direct Connect": {
+            "DirectConnects": [
+                {
+                    "DataTransferOut": {
+                        "Type": "TB/月", 
+                        "Value": 1.0
+                    }, 
+                    "Destciption": "port1", 
+                    "PortSpeed": "50 Mbps", 
+                    "Location": "Equinix TY2、東京", 
+                    "DataTransferIn": {
+                        "Type": "GB/月", 
+                        "Value": 10.0
+                    }, 
+                    "PortUsage": {
+                        "Type": "使用率/月", 
+                        "Value": 50.0
+                    }, 
+                    "Quantity": 2
+                }, 
+                {
+                    "DataTransferOut": {
+                        "Type": "GB/月", 
+                        "Value": 20.0
+                    }, 
+                    "Destciption": "port2", 
+                    "PortSpeed": "1 Gbps", 
+                    "Location": "Equinix TY2、東京", 
+                    "DataTransferIn": {
+                        "Type": "TB/月", 
+                        "Value": 2.0
+                    }, 
+                    "PortUsage": {
+                        "Type": "使用率/月", 
+                        "Value": 100.0
+                    }, 
+                    "Quantity": 1
+                }
+            ]
+        }, 
+        "Amazon RDS": {
+            "Instances": [
+                {
+                    "Engine": "MySQL", 
+                    "Description": "MySQL Database", 
+                    "Storage": {
+                        "Iops": 0, 
+                        "Type": "汎用（SSD）", 
+                        "Size": 11
+                    }, 
+                    "Deployment": "スタンダード（シングル AZ）またはリードレプリカ", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "InstanceType": "db.t1.micro", 
+                    "Quantity": 1
+                }
+            ], 
+            "Region": "アジアパシフィック（日本）", 
+            "ReservedInstances": [
+                {
+                    "Engine": "MySQL", 
+                    "OfferingType": "All Upfront", 
+                    "Description": "MySQL Database1", 
+                    "Deployment": "マルチ AZ", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 90.0
+                    }, 
+                    "Storage": {
+                        "Iops": 100, 
+                        "Type": "プロビジョンド IOPS（SSD）", 
+                        "Size": 30
+                    }, 
+                    "Type": "db.m3.medium", 
+                    "OfferingTerm": "1 年間", 
+                    "Quantity": 2
+                }
+            ], 
+            "BackupVolumes": [
+                {
+                    "Type": "ストレージの GB-月", 
+                    "Value": 10.1
+                }
+            ]
+        }, 
+        "Amazon S3": {
+            "GetOtherRequests": 20000, 
+            "InternetSend": {
+                "Type": "GB/月", 
+                "Value": 5.0
+            }, 
+            "PutCopyPostListRequests": 2000, 
+            "InterRegion": {
+                "Type": "GB/月", 
+                "Value": 0.0
+            }, 
+            "Region": "アジアパシフィック（日本）", 
+            "StandardStorage": {
+                "Type": "GB", 
+                "Value": 5.1
+            }, 
+            "InternetReceive": {
+                "Type": "GB/月", 
+                "Value": 5.0
+            }, 
+            "ReducedRedundancy": {
+                "Type": "GB", 
+                "Value": 0.0
+            }
+        }
+    }, 
+    "Solution": {
+        "Description": "DDD\nEEE", 
+        "Name": "AAA", 
+        "Includes": "BBB\nCCC"
+    }
+}

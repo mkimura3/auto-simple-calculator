@@ -1,0 +1,31 @@
+{
+    "SystemConfiguration": {
+        "Amazon CloudFront": {
+            "InvalidationRequests": 2000, 
+            "RequestType": "HTTPS", 
+            "CustomCertificates": 1, 
+            "EdgeLocationDistribution": {
+                "JP": 25, 
+                "US": 10, 
+                "HK": 20, 
+                "AU": 13, 
+                "IN": 0, 
+                "EU": 15, 
+                "SA": 17
+            }, 
+            "MonthlyVolume": {
+                "Type": "TB/月", 
+                "Value": 4.3
+            }, 
+            "AverageObjectSize": 100
+        }, 
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }
+    }, 
+    "Solution": {
+        "Description": "yyyyy", 
+        "Name": "RRR", 
+        "Includes": "TTTT"
+    }
+}

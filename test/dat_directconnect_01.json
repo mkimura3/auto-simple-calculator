@@ -1,0 +1,79 @@
+{
+    "Estimate": {
+        "TotalItems": [
+            {
+                "Price": 1115.66, 
+                "Name": "月額料金合計:"
+            }
+        ], 
+        "Total": 1115.66, 
+        "Detail": [
+            {
+                "Items": [
+                    {
+                        "Price": 250.36, 
+                        "Name": "ポート:"
+                    }, 
+                    {
+                        "Price": 0.0, 
+                        "Name": "データ転送受信:"
+                    }, 
+                    {
+                        "Price": 865.3, 
+                        "Name": "データ転送送信:"
+                    }
+                ], 
+                "SubTotal": 1115.66, 
+                "Name": "AWS Direct Connect サービス（日本）"
+            }
+        ]
+    }, 
+    "SystemConfiguration": {
+        "AWS Direct Connect": {
+            "Region": "アジアパシフィック（日本）",
+            "DirectConnects": [
+                {
+                    "DataTransferOut": {
+                        "Type": "TB/月", 
+                        "Value": 20.0
+                    }, 
+                    "Destciption": "port1", 
+                    "PortSpeed": "1 Gbps", 
+                    "Location": "Equinix TY2、東京", 
+                    "DataTransferIn": {
+                        "Type": "GB/月", 
+                        "Value": 10.2
+                    }, 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100.0
+                    }, 
+                    "Quantity": 1
+                }, 
+                {
+                    "DataTransferOut": {
+                        "Type": "GB/日", 
+                        "Value": 2.0
+                    }, 
+                    "Destciption": "port2", 
+                    "PortSpeed": "100 Mbps", 
+                    "Location": "Equinix TY2、東京", 
+                    "DataTransferIn": {
+                        "Type": "GB/週", 
+                        "Value": 1.0
+                    }, 
+                    "Usage": {
+                        "Type": "時間/日", 
+                        "Value": 12.0
+                    }, 
+                    "Quantity": 2
+                }
+            ]
+        }
+    }, 
+    "Solution": {
+        "Description": "33333", 
+        "Name": "11111", 
+        "Includes": "22222"
+    }
+}

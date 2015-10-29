@@ -1,0 +1,128 @@
+{
+    "SystemConfiguration": {
+        "Amazon RDS": {
+            "DataTranfer": {
+                "InterRegion": {
+                    "Type": "GB/月", 
+                    "Value": 10.0
+                }, 
+                "InternetReceive": {
+                    "Type": "GB/週", 
+                    "Value": 30.0
+                }, 
+                "InternetSend": {
+                    "Type": "GB/月", 
+                    "Value": 20.0
+                }, 
+                "IntraRegion": {
+                    "Type": "GB/日", 
+                    "Value": 40.0
+                }
+            },
+            "Instances": [
+                {
+                    "Engine": "MySQL", 
+                    "Description": "DB01", 
+                    "Storage": {
+                        "Iops": 0, 
+                        "Type": "汎用（SSD）", 
+                        "Size": 20
+                    }, 
+                    "Deployment": "スタンダード（シングル AZ）またはリードレプリカ", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100
+                    }, 
+                    "InstanceType": "db.r3.4xlarge", 
+                    "Quantity": 1
+                }, 
+                {
+                    "Engine": "PostgreSQL", 
+                    "Description": "DB02", 
+                    "Storage": {
+                        "Iops": 0, 
+                        "Type": "マグネティック", 
+                        "Size": 10
+                    }, 
+                    "Deployment": "マルチ AZ", 
+                    "Usage": {
+                        "Type": "時間/日", 
+                        "Value": 24
+                    }, 
+                    "InstanceType": "db.m2.2xlarge", 
+                    "Quantity": 2
+                }, 
+                {
+                    "Engine": "Oracle（SE1 ライセンス込み）", 
+                    "Description": "DB03", 
+                    "Storage": {
+                        "Iops": 200, 
+                        "Type": "プロビジョンド IOPS（SSD）", 
+                        "Size": 100
+                    }, 
+                    "Deployment": "スタンダード（シングル AZ）またはリードレプリカ", 
+                    "Usage": {
+                        "Type": "時間/週", 
+                        "Value": 100
+                    }, 
+                    "InstanceType": "db.m2.2xlarge", 
+                    "Quantity": 1
+                }
+            ], 
+            "Region": "アジアパシフィック（日本）", 
+            "ReservedInstances": [
+                {
+                    "Engine": "MySQL", 
+                    "OfferingType": "All Upfront", 
+                    "Description": "rDB01", 
+                    "Deployment": "スタンダード（シングル AZ）またはリードレプリカ", 
+                    "Usage": {
+                        "Type": "使用率/月", 
+                        "Value": 100.0
+                    }, 
+                    "Storage": {
+                        "Iops": 0, 
+                        "Type": "汎用（SSD）", 
+                        "Size": 10
+                    }, 
+                    "Type": "db.r3.2xlarge", 
+                    "OfferingTerm": "3 年間", 
+                    "Quantity": 1
+                }, 
+                {
+                    "Engine": "PostgreSQL", 
+                    "OfferingType": "All Upfront", 
+                    "Description": "rDB02", 
+                    "Deployment": "マルチ AZ", 
+                    "Usage": {
+                        "Type": "時間/日", 
+                        "Value": 24.0
+                    }, 
+                    "Storage": {
+                        "Iops": 0, 
+                        "Type": "マグネティック", 
+                        "Size": 20
+                    }, 
+                    "Type": "db.r3.large", 
+                    "OfferingTerm": "1 年間", 
+                    "Quantity": 2
+                }
+            ], 
+            "BackupVolumes": [
+                {
+                    "Type": "ストレージの GB-月", 
+                    "Value": 100.0
+                }, 
+                {
+                    "Type": "ストレージの GB-月", 
+                    "Value": 200.0
+                }
+            ]
+        }
+    }, 
+    "Solution": {
+        "Description": "DDDD\nEEEE", 
+        "Name": "AAAA", 
+        "Includes": "BBBB\nCCCC"
+    }
+}

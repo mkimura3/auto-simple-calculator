@@ -1,0 +1,37 @@
+{
+    "SystemConfiguration": {
+        "AWS Support": {
+            "Plan": "エンタープライズ"
+        }, 
+        "Amazon S3": {
+            "GetOtherRequests": 20000, 
+            "InternetSend": {
+                "Type": "TB/月", 
+                "Value": 40.0
+            }, 
+            "PutCopyPostListRequests": 10000, 
+            "InterRegion": {
+                "Type": "GB/月", 
+                "Value": 30.0
+            }, 
+            "Region": "アジアパシフィック（日本）", 
+            "StandardStorage": {
+                "Type": "GB", 
+                "Value": 10.0
+            }, 
+            "InternetReceive": {
+                "Type": "TB/月", 
+                "Value": 50.0
+            }, 
+            "ReducedRedundancy": {
+                "Type": "TB", 
+                "Value": 20.0
+            }
+        }
+    }, 
+    "Solution": {
+        "Description": "c", 
+        "Name": "a", 
+        "Includes": "b"
+    }
+}

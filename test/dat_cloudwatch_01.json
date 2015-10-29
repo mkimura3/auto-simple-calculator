@@ -1,0 +1,40 @@
+{
+    "SystemConfiguration": {
+        "Amazon CloudWatch": {
+            "Region": "アジアパシフィック（日本）", 
+            "AutoScalingAlarms": 50, 
+            "ELBAlarms": 20, 
+            "EC2Alarms": 10, 
+            "CustomMetrics": [
+                {
+                    "Description": "custom01", 
+                    "Frequency": "1 分間隔", 
+                    "Alarms": 3, 
+                    "CustomMetrics": 2, 
+                    "IngestedLogSize": 4, 
+                    "ArchivedLogSize": 5, 
+                    "Resources": 1
+                }, 
+                {
+                    "Description": "custom02", 
+                    "Frequency": "5 分間隔", 
+                    "Alarms": 8, 
+                    "CustomMetrics": 7, 
+                    "IngestedLogSize": 9, 
+                    "ArchivedLogSize": 10, 
+                    "Resources": 6
+                }
+            ], 
+            "EBSAlarms": 30, 
+            "RDSAlarms": 40
+        }, 
+        "AWS Support": {
+            "Plan": "ベーシック"
+        }
+    }, 
+    "Solution": {
+        "Description": "CC", 
+        "Name": "AA", 
+        "Includes": "BB"
+    }
+}
