@@ -4,15 +4,17 @@
 """Get a detail estimate  From AWS SIMPLE MONTHLY CALCULATOR
 
 Usage:
-    get-aws-estimate.py (-u | --url) <SavedURL> (-s | --server) <SeleniumServerURL> [options]
+    get-aws-estimate.py -u <SavedURL> -s <serverURL> [options]
 
 Options:
-    -h,--help           Show this screen.
-    --version           Show version.
-    -d <driver_type>    Selenium WebDriver Type [default: FIREFOX]
-    -f <filename>       Output filename
-    -p <file_prefix>    ScreenshotFile prefix name [default: aws-]
-    --screen            Take Sceenshot
+    -s --server <serverURL> Selenium Server URL.
+    -u --url <savedURL>     Estimate Saved URL.
+    -h --help               Show this screen.
+    --version               Show version.
+    -d <driver_type>        Selenium WebDriver Type [default: FIREFOX]
+    -f <filename>           Output filename
+    -p <file_prefix>        ScreenshotFile prefix name [default: aws-]
+    --screen                Take Sceenshot
 """
 
 
@@ -1147,8 +1149,8 @@ if __name__ == "__main__":
     # print >>sys.stderr, args
 
     ae = AwsEstimate(
-        saved_url=args['<SavedURL>'], 
-        server_url=args['<SeleniumServerURL>'],
+        saved_url=args['--url'], 
+        server_url=args['--server'],
         driver_type=args['-d'],
         file_prefix=args['-p'],
         screenshot=args['--screen'] )
