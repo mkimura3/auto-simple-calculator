@@ -97,8 +97,9 @@ class AwsService(object):
         else:
             v = value
         element = self.get_element(css, driver)
-        element.clear()
-        element.send_keys([str(v), Keys.ENTER])
+        if element.is_enabled() :
+            element.clear()
+            element.send_keys([str(v), Keys.ENTER])
 
     def set_checkbox( self, css, value, driver=None):
         chkbox = self.get_element(css, driver)
