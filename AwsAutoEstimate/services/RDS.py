@@ -98,7 +98,7 @@ class RDS(AwsService):
                     'Type' : usage_type,
                 },
                 'Engine' : engine,
-                'Type' : instance_type,
+                'InstanceType' : instance_type,
                 'Deployment' : deploy_type,
                 'Storage' : {
                     'Type' : storage_type,
