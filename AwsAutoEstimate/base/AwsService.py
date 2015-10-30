@@ -24,10 +24,12 @@ class AwsService(object):
     #
     driver = None
     eventdriver = None
+    file_prefix = ''
 
-    def __init__(self, driver):
+    def __init__(self, driver, file_prefix=''):
         self.driver = driver
         self.eventdriver = EventFiringWebDriver(self.driver, ScreenshotListener())
+        self.file_prefix = file_prefix
 
     def get_screenshot(self, name ):
         self.driver.get_screenshot_as_file( self.file_prefix + name + '.png' )

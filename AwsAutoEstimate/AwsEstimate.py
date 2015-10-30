@@ -31,7 +31,7 @@ def pp(obj):
         print obj.encode('utf-8')
 
 class AwsEstimate(AwsService):
-    def __init__(self, server_url, driver_type):
+    def __init__(self, server_url, driver_type, file_prefix=''):
         if driver_type.strip() == 'FIREFOX' :
             self.desired_capabilities=DesiredCapabilities.FIREFOX
         elif driver_type.strip() == 'CHROME' :
@@ -44,7 +44,7 @@ class AwsEstimate(AwsService):
             command_executor=server_url,
             desired_capabilities=self.desired_capabilities
         )
-        super(AwsEstimate,self).__init__(driver)
+        super(AwsEstimate,self).__init__(driver,file_prefix)
         #
         self.driver.implicitly_wait(15)
         self.driver.set_window_size(1024,768)
@@ -367,37 +367,37 @@ class AwsEstimate(AwsService):
         service = None
         # EC2
         if ( service_name == 'Amazon EC2' ):
-            service = EC2(self.driver)
+            service = EC2(self.driver, self.file_prefix)
         # S3
         elif ( service_name == 'Amazon S3' ):
-            service = S3(self.driver)
+            service = S3(self.driver, self.file_prefix)
         # Route53
         elif ( service_name == 'Amazon Route 53' ):
-            service = Route53(self.driver)
+            service = Route53(self.driver, self.file_prefix)
         # CloudFront
         elif ( service_name == u'Amazon CloudFront' ):
-            service = CloudFront(self.driver)
+            service = CloudFront(self.driver, self.file_prefix)
         # RDS
         elif ( service_name == 'Amazon RDS' ):
-            service = RDS(self.driver)
+            service = RDS(self.driver, self.file_prefix)
         # ElastiCache
         elif ( service_name == 'Amazon ElastiCache' ):
-            service = ElastiCache(self.driver)
+            service = ElastiCache(self.driver, self.file_prefix)
         # CloudWatch
         elif ( service_name == u'Amazon CloudWatch' ):
-            service = CloudWatch(self.driver)
+            service = CloudWatch(self.driver, self.file_prefix)
         # SES
         elif ( service_name == u'Amazon SES' ):
-            service = SES(self.driver)
+            service = SES(self.driver, self.file_prefix)
         # SNS
         elif ( service_name == u'Amazon SNS' ):
-            service = SNS(self.driver)
+            service = SNS(self.driver, self.file_prefix)
         # DirectConnect
         elif ( service_name == u'AWS Direct Connect' ):
-            service = DirectConnect(self.driver)
+            service = DirectConnect(self.driver, self.file_prefix)
         # VPC
         elif ( service_name == 'Amazon VPC' ):
-            service = VPC(self.driver)
+            service = VPC(self.driver, self.file_prefix)
         #
         return service
 
