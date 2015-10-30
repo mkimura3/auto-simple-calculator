@@ -61,14 +61,10 @@ class AwsEstimate(AwsService):
         # 見積もり概要の取得
         solution = self.getSolution()
         # TODO: 無料利用枠のチェック
-        # Serviceメニューの取得
-        #self.init_serviceMenu()
+
         # 見積もりを取得する
-        print >>sys.stderr, '# Getting Estimate ...'
-        self.get_element("div.billLabel").click()
-        bill=self.get_element("table.bill")
         estimate = {
-            'Estimate' : self.get_estimate(bill)
+            'Estimate' : self.get_estimate_detail()
         }
         # スクリーンショット取得
         if self.screenshot :
@@ -102,13 +98,13 @@ class AwsEstimate(AwsService):
                     sc= self.get_awsService( n.group(1).strip() , None )
                     systemconf.update(sc)
         #
-        estimate = {}
-        estimate.update(solution) 
-        estimate.update(estimate)
-        estimate.update({'SystemConfiguration' : systemconf })
+        ret = {}
+        ret.update(solution) 
+        ret.update(estimate)
+        ret.update({'SystemConfiguration' : systemconf })
         #
         print >>sys.stderr, '# Done.'
-        return estimate
+        return ret
 
 
 
@@ -146,13 +142,6 @@ class AwsEstimate(AwsService):
             'Description' : sc_desc
         }
 
-    """
-    def init_serviceMenu(self):
-        self.serviceTab = {}
-        tabs = self.get_elements("div.servicesPanel > div.tabs > div.tab[aria-hidden=false]")
-        for tab in tabs:
-            self.serviceTab[ tab.text.strip() ] = tab
-    """
     def select_service(self, serviceName):
         #self.serviceTab[serviceName].click()
         tabs = self.get_elements("div.servicesPanel > div.tabs > div.tab[aria-hidden=false]")
@@ -173,13 +162,16 @@ class AwsEstimate(AwsService):
         if region_text :
             self.set_select('select.gwt-ListBox.CR_CHOOSE_REGION.regionListBox', region_text)
 
-    def get_estimate(self,bill):
-        # ちょっと待ってから[+]をクリックする TODO:料金表示のtab部分の変化をトリガーとする
-        time.sleep(4)
+    def get_estimate_detail(self, waiting=True):
+        print >>sys.stderr, '# Getting Estimate ...'
+        # 見積もりに移動
+        self.get_element("div.billLabel").click()
+        bill=self.get_element("table.bill")
+        # ちょっと待ってから[+]をクリックする 
+        if waiting : time.sleep(3)
         btns = self.get_elements("tr.columnTreeRow.summary[aria-hidden=false] img[src$='tree-up.png']", bill)
         for btn in btns:
             btn.click()
-
         # 月額合計
         total_items =[]
         total = float(self.get_value('tr.total:not([aria-hidden]) table.value>tbody>tr>td:nth-child(2)>input',bill))
@@ -197,7 +189,6 @@ class AwsEstimate(AwsService):
                 'Price' : v
             })
             total += v
-
         # 展開された見積もりを順に取得
         rows = self.get_elements("tr[aria-hidden=false]",bill)
         estimate={
@@ -287,10 +278,16 @@ class AwsEstimate(AwsService):
             self.set_awsService( k, v )
         # Supportは最後に設定する
         ret = self.set_supportService(system_conf['SystemConfiguration'])
+        # 見積もりを取得する
+        estimate_detail = self.get_estimate_detail(False)
+        
         # 保存して共有 
         print >>sys.stderr, '# Done.'
         saved_url = self.get_estimate_url( system_conf['Solution'] )
-        return saved_url
+        return {
+            'SavedURL' : saved_url,
+            'Estimate' : estimate_detail
+        }
 
     def get_estimate_url(self,solution):
         # 見積もりタブに移動
@@ -356,6 +353,7 @@ class AwsEstimate(AwsService):
                 for plan in plans:
                     i = plan.text.strip().find( conf['Plan'] )
                     if i >= 0 :
+                        time.sleep(0.1)
                         self.get_element("input[type='radio']",plan).click()
                         break
 
@@ -404,17 +402,23 @@ class AwsEstimate(AwsService):
         return service
 
 if __name__ == "__main__":
+    # TODO : Docoptsの設定
+   
     # get
-    saved_url = 'http://calculator.s3.amazonaws.com/index.html?lng=ja_JP#r=NRT&s=EC2&key=calc-47975846-88A8-498C-8DD3-05567A4A7163' 
+    saved_url = 'http://calculator.s3.amazonaws.com/index.html?lng=ja_JP#r=NRT&s=RDS&key=calc-8003D1CC-2CE9-4824-90A0-F56EC75CB69E' 
     estimate = AwsEstimate('http://192.168.56.1:4444/wd/hub','FIREFOX')
     estimate_json = estimate.getEstimate( saved_url, False ) 
     pp(estimate_json)
+    get_total = estimate_json['Estimate']['Total']
     estimate.tearDown()
     estimate = None
     # create
     estimate = AwsEstimate('http://192.168.56.1:4444/wd/hub','FIREFOX')
-    url = estimate.createEstimate(estimate_json)
-    print url
+    ret = estimate.createEstimate(estimate_json)
+    pp(ret)
+    create_total = ret['Estimate']['Total']
+    assert get_total == create_total
     estimate.tearDown()
     estimate = None
- 
+
+
