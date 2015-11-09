@@ -66,9 +66,6 @@ class AwsEstimate(AwsService):
         estimate = {
             'Estimate' : self.get_estimate_detail()
         }
-        # スクリーンショット取得
-        if self.screenshot :
-            self.get_screenshot('estimate')
         # Regionリストの取得
         self.init_regionList()
         # 見積もり項目ごとに構成を取得する
@@ -218,6 +215,10 @@ class AwsEstimate(AwsService):
         if s : estimate['Detail'].append(s)
         # 見積もり合計値のチェック
         self.check_estimate(estimate)
+        # スクリーンショット取得
+        if self.screenshot :
+            self.get_screenshot('estimate')
+
         return estimate
 
     def check_estimate(self, estimate):
